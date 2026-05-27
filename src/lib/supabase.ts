@@ -167,6 +167,10 @@ export interface SocialCommentLike {
   created_at: string;
 }
 
+function requireSocialUser(currentUser?: Profile | null): Profile | null {
+  return currentUser ?? null;
+}
+
 // -------------------------------------------------------------
 // LOCAL STATE STORAGE ENGINE (For Mock Mode)
 // -------------------------------------------------------------
@@ -1594,8 +1598,8 @@ export async function fetchHallOfFame(): Promise<HallOfFameEntry[]> {
   return [...entries.values()].sort((a, b) => b.total_wins - a.total_wins);
 }
 
-export async function fetchSocialFeed(): Promise<SocialPost[]> {
-  const user = await getCurrentUser();
+export async function fetchSocialFeed(currentUser?: Profile | null): Promise<SocialPost[]> {
+  const user = requireSocialUser(currentUser) ?? await getCurrentUser();
   if (!user) return [];
 
   if (isUsingMock) {
@@ -1714,8 +1718,8 @@ export async function fetchSocialFeed(): Promise<SocialPost[]> {
   });
 }
 
-export async function createSocialPost(content: string): Promise<SocialPost> {
-  const user = await getCurrentUser();
+export async function createSocialPost(content: string, currentUser?: Profile | null): Promise<SocialPost> {
+  const user = requireSocialUser(currentUser) ?? await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
   const trimmed = content.trim();
   if (trimmed.length < 1) throw new Error("Post content is required");
@@ -1745,8 +1749,8 @@ export async function createSocialPost(content: string): Promise<SocialPost> {
   return data as SocialPost;
 }
 
-export async function toggleSocialLike(postId: string): Promise<void> {
-  const user = await getCurrentUser();
+export async function toggleSocialLike(postId: string, currentUser?: Profile | null): Promise<void> {
+  const user = requireSocialUser(currentUser) ?? await getCurrentUser();
   if (!user) return;
 
   if (isUsingMock) {
@@ -1773,8 +1777,8 @@ export async function toggleSocialLike(postId: string): Promise<void> {
   }
 }
 
-export async function toggleSocialCommentLike(commentId: string): Promise<void> {
-  const user = await getCurrentUser();
+export async function toggleSocialCommentLike(commentId: string, currentUser?: Profile | null): Promise<void> {
+  const user = requireSocialUser(currentUser) ?? await getCurrentUser();
   if (!user) return;
 
   if (isUsingMock) {
@@ -1801,8 +1805,8 @@ export async function toggleSocialCommentLike(commentId: string): Promise<void> 
   }
 }
 
-export async function createSocialComment(postId: string, content: string): Promise<SocialComment> {
-  const user = await getCurrentUser();
+export async function createSocialComment(postId: string, content: string, currentUser?: Profile | null): Promise<SocialComment> {
+  const user = requireSocialUser(currentUser) ?? await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
   const trimmed = content.trim();
   if (!trimmed) throw new Error("Comment content is required");
@@ -1832,8 +1836,8 @@ export async function createSocialComment(postId: string, content: string): Prom
   return data as SocialComment;
 }
 
-export async function fetchSocialProfiles(): Promise<SocialProfile[]> {
-  const user = await getCurrentUser();
+export async function fetchSocialProfiles(currentUser?: Profile | null): Promise<SocialProfile[]> {
+  const user = requireSocialUser(currentUser) ?? await getCurrentUser();
   if (!user) return [];
 
   if (isUsingMock) {
@@ -1873,8 +1877,8 @@ export async function fetchSocialProfiles(): Promise<SocialProfile[]> {
   }));
 }
 
-export async function fetchSocialProfile(profileId: string): Promise<SocialProfile | null> {
-  const user = await getCurrentUser();
+export async function fetchSocialProfile(profileId: string, currentUser?: Profile | null): Promise<SocialProfile | null> {
+  const user = requireSocialUser(currentUser) ?? await getCurrentUser();
   if (!user) return null;
 
   if (isUsingMock) {
@@ -1909,8 +1913,8 @@ export async function fetchSocialProfile(profileId: string): Promise<SocialProfi
   };
 }
 
-export async function followUser(profileId: string): Promise<void> {
-  const user = await getCurrentUser();
+export async function followUser(profileId: string, currentUser?: Profile | null): Promise<void> {
+  const user = requireSocialUser(currentUser) ?? await getCurrentUser();
   if (!user || user.id === profileId) return;
 
   if (isUsingMock) {
@@ -1926,8 +1930,8 @@ export async function followUser(profileId: string): Promise<void> {
   await supabase.from("social_follows").insert([{ follower_id: user.id, following_id: profileId }]);
 }
 
-export async function unfollowUser(profileId: string): Promise<void> {
-  const user = await getCurrentUser();
+export async function unfollowUser(profileId: string, currentUser?: Profile | null): Promise<void> {
+  const user = requireSocialUser(currentUser) ?? await getCurrentUser();
   if (!user) return;
 
   if (isUsingMock) {

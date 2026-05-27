@@ -5,6 +5,7 @@ import { Button } from "../components/ui/Button";
 import { Card, CardTitle } from "../components/ui/Card";
 import { useToast } from "../components/ui/Toast";
 import { useI18n } from "../components/i18n/I18nProvider";
+import { useAuth } from "../components/auth/AuthGuard";
 import {
   createSocialPost,
   createSocialComment,
@@ -52,6 +53,7 @@ const Social: React.FC = () => {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { t } = useI18n();
+  const { user } = useAuth();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [profiles, setProfiles] = useState<SocialProfile[]>([]);
   const [content, setContent] = useState("");
@@ -66,8 +68,8 @@ const Social: React.FC = () => {
     let hadError = false;
     try {
       const [feedResult, profileResult] = await Promise.allSettled([
-        fetchSocialFeed(),
-        fetchSocialProfiles(),
+        fetchSocialFeed(user),
+        fetchSocialProfiles(user),
       ]);
 
       if (feedResult.status === "fulfilled") {
@@ -92,7 +94,7 @@ const Social: React.FC = () => {
     } finally {
       if (!isSilent) setLoading(false);
     }
-  }, [showToast, t]);
+  }, [showToast, t, user]);
 
   useEffect(() => {
     loadSocialData();
@@ -151,7 +153,7 @@ const Social: React.FC = () => {
     if (!content.trim()) return;
     setPosting(true);
     try {
-      await createSocialPost(content);
+      await createSocialPost(content, user);
       setContent("");
       showToast(t("social.postCreated"), "success");
       await loadSocialData(true); // Silent update
@@ -177,9 +179,9 @@ const Social: React.FC = () => {
     }));
     try {
       if (profile.is_following) {
-        await unfollowUser(profile.id);
+        await unfollowUser(profile.id, user);
       } else {
-        await followUser(profile.id);
+        await followUser(profile.id, user);
       }
       await loadSocialData(true); // Silent update in background
     } catch {
@@ -202,7 +204,7 @@ const Social: React.FC = () => {
       return p;
     }));
     try {
-      await toggleSocialLike(postId);
+      await toggleSocialLike(postId, user);
       await loadSocialData(true); // Silent update
     } catch {
       await loadSocialData(true); // Sync
@@ -231,7 +233,7 @@ const Social: React.FC = () => {
       return p;
     }));
     try {
-      await toggleSocialCommentLike(commentId);
+      await toggleSocialCommentLike(commentId, user);
       await loadSocialData(true); // Silent update
     } catch {
       await loadSocialData(true); // Sync
@@ -247,7 +249,7 @@ const Social: React.FC = () => {
     const text = commentDrafts[postId]?.trim();
     if (!text) return;
     try {
-      await createSocialComment(postId, text);
+      await createSocialComment(postId, text, user);
       setCommentDrafts(prev => ({ ...prev, [postId]: "" }));
       await loadSocialData(true); // Silent update
     } catch {
