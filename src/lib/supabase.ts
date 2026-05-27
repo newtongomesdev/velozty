@@ -19,6 +19,19 @@ if (isUsingMock) {
   console.warn("Velozty: Supabase credentials missing. Running in premium Local Simulation Mode!");
 }
 
+async function withTimeout<T>(
+  promise: PromiseLike<T>,
+  timeoutMs: number,
+  timeoutMessage: string,
+): Promise<T> {
+  return await Promise.race([
+    Promise.resolve(promise),
+    new Promise<T>((_, reject) => {
+      setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
+    }),
+  ]);
+}
+
 // -------------------------------------------------------------
 // TYPES
 // -------------------------------------------------------------
@@ -242,9 +255,27 @@ export async function getCurrentUser(existingUser?: User): Promise<Profile | nul
   
   let user: User | null = existingUser ?? null;
   if (!user) {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) return null;
-    user = session?.user ?? null;
+    try {
+      const { data: { session }, error } = await withTimeout(
+        supabase.auth.getSession(),
+        2500,
+        "Auth session lookup timed out",
+      );
+      if (error) return null;
+      user = session?.user ?? null;
+    } catch {
+      try {
+        const { data, error } = await withTimeout(
+          supabase.auth.getUser(),
+          4000,
+          "Auth user lookup timed out",
+        );
+        if (error) return null;
+        user = data.user ?? null;
+      } catch {
+        return null;
+      }
+    }
   }
   
   if (!user) return null;
@@ -269,22 +300,22 @@ export async function getCurrentUser(existingUser?: User): Promise<Profile | nul
     .eq("id", user.id)
     .maybeSingle();
 
-  const timeoutPromise = new Promise<{ data: null; error: { message: string; code: string } }>((resolve) =>
-    setTimeout(() => resolve({ data: null, error: { message: "Profiles query timed out", code: "TIMEOUT" } }), 3500)
-  );
-
   let profile = null;
-  let profileError = null;
+  let profileLookupFailed: boolean;
 
   try {
-    const { data, error } = await Promise.race([profileQueryPromise, timeoutPromise]) as Awaited<typeof profileQueryPromise>;
+    const { data, error } = await withTimeout(
+      profileQueryPromise,
+      3500,
+      "Profiles query timed out",
+    ) as Awaited<typeof profileQueryPromise>;
     profile = data;
-    profileError = error;
-  } catch (err: unknown) {
-    profileError = err;
+    profileLookupFailed = Boolean(error);
+  } catch {
+    profileLookupFailed = true;
   }
 
-  if (!profile && !profileError) {
+  if (!profile && !profileLookupFailed) {
     try {
       const { data: insertedProfile, error: insertError } = await supabase
         .from("profiles")
@@ -310,10 +341,10 @@ export async function getCurrentUser(existingUser?: User): Promise<Profile | nul
       }
       
       profile = insertedProfile;
-    } catch (insertEx) {
+    } catch {
       return virtualProfile;
     }
-  } else if (profileError) {
+  } else if (profileLookupFailed) {
     return virtualProfile;
   }
 
@@ -1598,30 +1629,55 @@ export async function fetchSocialFeed(): Promise<SocialPost[]> {
 
   if (!supabase) return [];
 
-  const { data: follows } = await supabase
-    .from("social_follows")
-    .select("following_id")
-    .eq("follower_id", user.id);
+  const { data: follows, error: followsError } = await withTimeout(
+    supabase
+      .from("social_follows")
+      .select("following_id")
+      .eq("follower_id", user.id),
+    5000,
+    "Social follows query timed out",
+  );
+  if (followsError) throw followsError;
   const ids = [user.id, ...((follows || []) as { following_id: string }[]).map(f => f.following_id)];
-  const { data } = await supabase
-    .from("social_posts")
-    .select("*")
-    .in("user_id", ids)
-    .order("created_at", { ascending: false });
+  const { data, error: postsError } = await withTimeout(
+    supabase
+      .from("social_posts")
+      .select("*")
+      .in("user_id", ids)
+      .order("created_at", { ascending: false }),
+    5000,
+    "Social posts query timed out",
+  );
+  if (postsError) throw postsError;
   const posts = (data || []) as SocialPost[];
   if (posts.length === 0) return [];
 
   const postIds = posts.map(post => post.id);
-  const [{ data: likes }, { data: comments }] = await Promise.all([
-    supabase.from("social_likes").select("*").in("post_id", postIds),
-    supabase.from("social_comments").select("*").in("post_id", postIds).order("created_at", { ascending: true }),
+  const [{ data: likes, error: likesError }, { data: comments, error: commentsError }] = await Promise.all([
+    withTimeout(
+      supabase.from("social_likes").select("*").in("post_id", postIds),
+      5000,
+      "Social likes query timed out",
+    ),
+    withTimeout(
+      supabase.from("social_comments").select("*").in("post_id", postIds).order("created_at", { ascending: true }),
+      5000,
+      "Social comments query timed out",
+    ),
   ]);
+  if (likesError) throw likesError;
+  if (commentsError) throw commentsError;
   const likeList = (likes || []) as SocialLike[];
   const commentList = (comments || []) as SocialComment[];
   const commentIds = commentList.map(comment => comment.id);
-  const { data: commentLikes } = commentIds.length > 0
-    ? await supabase.from("social_comment_likes").select("*").in("comment_id", commentIds)
+  const { data: commentLikes, error: commentLikesError } = commentIds.length > 0
+    ? await withTimeout(
+      supabase.from("social_comment_likes").select("*").in("comment_id", commentIds),
+      5000,
+      "Social comment likes query timed out",
+    )
     : { data: [] };
+  if (commentLikesError) throw commentLikesError;
   const commentLikeList = (commentLikes || []) as SocialCommentLike[];
 
   return posts.map(post => {
@@ -1778,10 +1834,20 @@ export async function fetchSocialProfiles(): Promise<SocialProfile[]> {
   }
 
   if (!supabase) return [];
-  const [{ data: profiles }, { data: follows }] = await Promise.all([
-    supabase.from("profiles").select("*").neq("id", user.id).eq("is_public", true),
-    supabase.from("social_follows").select("*"),
+  const [{ data: profiles, error: profilesError }, { data: follows, error: followsError }] = await Promise.all([
+    withTimeout(
+      supabase.from("profiles").select("*").neq("id", user.id).eq("is_public", true),
+      5000,
+      "Social profiles query timed out",
+    ),
+    withTimeout(
+      supabase.from("social_follows").select("*"),
+      5000,
+      "Social follows list query timed out",
+    ),
   ]);
+  if (profilesError) throw profilesError;
+  if (followsError) throw followsError;
   const followList = (follows || []) as SocialFollow[];
   return ((profiles || []) as Profile[]).map(profile => ({
     ...profile,

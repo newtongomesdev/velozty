@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Heart, MessageCircle, RefreshCw, Search, Send, UserMinus, UserPlus, Users } from "lucide-react";
 import { Button } from "../components/ui/Button";
@@ -61,25 +61,42 @@ const Social: React.FC = () => {
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [mentionTarget, setMentionTarget] = useState<MentionTarget | null>(null);
 
-  const loadSocialData = async (isSilent = false) => {
+  const loadSocialData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
+    let hadError = false;
     try {
-      const [feedData, profileData] = await Promise.all([
+      const [feedResult, profileResult] = await Promise.allSettled([
         fetchSocialFeed(),
         fetchSocialProfiles(),
       ]);
-      setPosts(feedData);
-      setProfiles(profileData);
-    } catch (err) {
+
+      if (feedResult.status === "fulfilled") {
+        setPosts(feedResult.value);
+      } else {
+        hadError = true;
+        setPosts([]);
+      }
+
+      if (profileResult.status === "fulfilled") {
+        setProfiles(profileResult.value);
+      } else {
+        hadError = true;
+        setProfiles([]);
+      }
+
+      if (hadError) {
+        showToast(t("social.loadError"), "error");
+      }
+    } catch {
       showToast(t("social.loadError"), "error");
     } finally {
       if (!isSilent) setLoading(false);
     }
-  };
+  }, [showToast, t]);
 
   useEffect(() => {
     loadSocialData();
-  }, []);
+  }, [loadSocialData]);
 
   const filteredProfiles = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -138,7 +155,7 @@ const Social: React.FC = () => {
       setContent("");
       showToast(t("social.postCreated"), "success");
       await loadSocialData(true); // Silent update
-    } catch (err) {
+    } catch {
       showToast(t("social.postError"), "error");
     } finally {
       setPosting(false);
@@ -165,7 +182,7 @@ const Social: React.FC = () => {
         await followUser(profile.id);
       }
       await loadSocialData(true); // Silent update in background
-    } catch (err) {
+    } catch {
       showToast(t("social.followError"), "error");
       await loadSocialData(true); // Revert/sync
     }
@@ -187,7 +204,7 @@ const Social: React.FC = () => {
     try {
       await toggleSocialLike(postId);
       await loadSocialData(true); // Silent update
-    } catch (err) {
+    } catch {
       await loadSocialData(true); // Sync
     }
   };
@@ -216,7 +233,7 @@ const Social: React.FC = () => {
     try {
       await toggleSocialCommentLike(commentId);
       await loadSocialData(true); // Silent update
-    } catch (err) {
+    } catch {
       await loadSocialData(true); // Sync
     }
   };
@@ -233,7 +250,7 @@ const Social: React.FC = () => {
       await createSocialComment(postId, text);
       setCommentDrafts(prev => ({ ...prev, [postId]: "" }));
       await loadSocialData(true); // Silent update
-    } catch (err) {
+    } catch {
       showToast(t("social.commentError"), "error");
     }
   };
