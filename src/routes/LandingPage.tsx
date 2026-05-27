@@ -28,6 +28,8 @@ import {
 const translations = {
   pt: {
     heroBadge: "O jeito mais fácil de chamar a turma",
+    navFeatures: "Recursos",
+    navPricing: "Planos",
     heroTitlePre: "JUNTE OS AMIGOS",
     heroTitleVolt: "E CRIE",
     heroTitlePost: "UMA CORRIDA",
@@ -97,6 +99,8 @@ const translations = {
   },
   en: {
     heroBadge: "The easy way to gather your friends",
+    navFeatures: "Features",
+    navPricing: "Pricing",
     heroTitlePre: "BRING FRIENDS",
     heroTitleVolt: "TOGETHER",
     heroTitlePost: "FOR A RACE",
@@ -166,6 +170,8 @@ const translations = {
   },
   es: {
     heroBadge: "La forma fácil de juntar a tus amigos",
+    navFeatures: "Recursos",
+    navPricing: "Planes",
     heroTitlePre: "JUNTA A TUS AMIGOS",
     heroTitleVolt: "Y CREA",
     heroTitlePost: "UNA CARRERA",
@@ -333,8 +339,8 @@ export const LandingPage: React.FC = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-8 text-[11px] font-black uppercase tracking-wider text-mutedgray">
-          <a href="#features" className="hover:text-volt transition-colors">{t.featuresTitle.split(" ").slice(0,2).join(" ")}</a>
-          <a href="#pricing" className="hover:text-volt transition-colors">{t.pricingTitle.split(" ").slice(0,2).join(" ")}</a>
+          <a href="#features" className="hover:text-volt transition-colors">{t.navFeatures}</a>
+          <a href="#pricing" className="hover:text-volt transition-colors">{t.navPricing}</a>
           <a href="#faq" className="hover:text-volt transition-colors">FAQ</a>
         </nav>
 
