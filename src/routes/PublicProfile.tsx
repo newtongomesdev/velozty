@@ -141,7 +141,7 @@ const PublicProfile: React.FC = () => {
               </div>
               <button
                 type="button"
-                onClick={() => navigate("/social")}
+                onClick={() => navigate("/app/social")}
                 className="flex items-center gap-2 rounded-2xl border border-white/5 bg-black/15 px-4 py-3 text-left hover:text-volt"
               >
                 <MessageCircle className="h-4 w-4 text-volt" />

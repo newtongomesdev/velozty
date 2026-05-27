@@ -101,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(u);
         return { needsEmailConfirmation: false };
       } else if (supabase) {
-        const redirectTo = `${window.location.origin}/login`;
+        const redirectTo = `${window.location.origin}/app/login`;
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -131,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { error } = await supabase.auth.signInWithOAuth({
           provider,
           options: {
-            redirectTo: `${window.location.origin}/dashboard`,
+            redirectTo: `${window.location.origin}/app/dashboard`,
           },
         });
         if (error) throw error;
@@ -163,7 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     if (supabase) {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login`,
+        redirectTo: `${window.location.origin}/app/login`,
       });
       if (error) throw error;
     }
@@ -183,7 +183,7 @@ export const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children })
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/login");
+      navigate("/app/login");
     }
   }, [user, loading, navigate]);
 

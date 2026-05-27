@@ -278,7 +278,7 @@ export const CreateRace: React.FC = () => {
       });
 
       showToast(t("createRace.raceCreated"), "success");
-      navigate(`/races/${newRace.id}`);
+      navigate(`/app/races/${newRace.id}`);
     } catch (err: any) {
       console.error(err);
       showToast(err.message || t("createRace.createError"), "error");
@@ -293,7 +293,7 @@ export const CreateRace: React.FC = () => {
       {/* 1. BACK BUTTON HEADER */}
       <header className="max-w-4xl mx-auto w-full flex items-center gap-3">
         <button
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/app/dashboard")}
           className="p-3 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all focus:outline-none"
         >
           <ArrowLeft className="h-5 w-5" />

@@ -155,7 +155,7 @@ export const Results: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[100dvh] bg-darkbg text-white p-6 text-center">
         <h2 className="text-lg font-black uppercase text-white">{t("results.missingRace")}</h2>
-        <Button onClick={() => navigate("/dashboard")} className="mt-4">
+        <Button onClick={() => navigate("/app/dashboard")} className="mt-4">
           {t("invite.backToDashboard")}
         </Button>
       </div>
@@ -173,7 +173,7 @@ export const Results: React.FC = () => {
       <header className="max-w-4xl mx-auto w-full flex items-center justify-between z-10 border-b border-white/5 pb-3">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/app/dashboard")}
             className="p-3 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all focus:outline-none"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -185,7 +185,7 @@ export const Results: React.FC = () => {
         </div>
 
         <Button
-          onClick={() => navigate("/dashboard")}
+          onClick={() => navigate("/app/dashboard")}
           variant="glass"
           className="text-xs py-2 px-4"
         >

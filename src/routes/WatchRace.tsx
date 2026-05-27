@@ -65,7 +65,7 @@ const WatchRace: React.FC = () => {
         <ShieldOff className="h-12 w-12 text-hyperpink mb-3" />
         <h1 className="text-xl font-black uppercase">{t("watch.blockedTitle")}</h1>
         <p className="text-xs text-mutedgray max-w-sm mt-2 uppercase tracking-wide">{error || t("watch.blockedBody")}</p>
-        <Button variant="glass" className="mt-5" onClick={() => navigate("/races/public")}>{t("common.back")}</Button>
+        <Button variant="glass" className="mt-5" onClick={() => navigate("/app/races/public")}>{t("common.back")}</Button>
       </div>
     );
   }
@@ -74,7 +74,7 @@ const WatchRace: React.FC = () => {
     <div className="min-h-[100dvh] bg-darkbg text-white p-4 md:p-8 flex flex-col gap-4">
       <header className="max-w-6xl mx-auto w-full flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/races/public")} className="p-3 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10">
+          <button onClick={() => navigate("/app/races/public")} className="p-3 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>

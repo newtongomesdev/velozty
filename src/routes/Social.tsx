@@ -169,7 +169,7 @@ const Social: React.FC = () => {
   };
 
   const openProfile = (profileId: string) => {
-    navigate(`/profile/${profileId}`);
+    navigate(`/app/profile/${profileId}`);
   };
 
   const handleComment = async (event: React.FormEvent, postId: string) => {
@@ -217,7 +217,7 @@ const Social: React.FC = () => {
       <header className="max-w-5xl mx-auto w-full flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/app/dashboard")}
             className="p-3 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10"
           >
             <ArrowLeft className="h-5 w-5" />

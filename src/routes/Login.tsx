@@ -27,7 +27,7 @@ export const Login: React.FC = () => {
   // Redirect if user is already logged in
   useEffect(() => {
     if (user) {
-      navigate("/dashboard");
+      navigate("/app/dashboard");
     }
   }, [user, navigate]);
 
@@ -67,14 +67,14 @@ export const Login: React.FC = () => {
         }));
         showToast(result.needsEmailConfirmation ? t("login.confirmationRequired") : t("login.signUpSuccess"), "success");
         if (!result.needsEmailConfirmation) {
-          navigate("/dashboard");
+          navigate("/app/dashboard");
         }
         return;
       }
 
       await signInUser(email, password);
       showToast(t("login.loginSuccess"), "success");
-      navigate("/dashboard");
+      navigate("/app/dashboard");
     } catch (err: any) {
       console.error(err);
       showToast(err.message || t("login.authFailure"), "error");

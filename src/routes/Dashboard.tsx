@@ -219,7 +219,7 @@ export const Dashboard: React.FC = () => {
         .filter(key => LGPD_EXPORT_PREFIXES.some(prefix => key.startsWith(prefix)))
         .forEach(key => localStorage.removeItem(key));
       showToast(t("dashboard.lgpdDeleted"), "info");
-      navigate("/login");
+      navigate("/app/login");
     } catch (err: any) {
       console.error(err);
       showToast(err.message || t("dashboard.lgpdDeleteError"), "error");
@@ -329,7 +329,7 @@ export const Dashboard: React.FC = () => {
     try {
       await logoutUser();
       showToast(t("dashboard.logoutDone"), "info");
-      navigate("/login");
+      navigate("/app/login");
     } catch (err: any) {
       showToast(t("dashboard.logoutError"), "error");
     }
@@ -346,7 +346,7 @@ export const Dashboard: React.FC = () => {
     try {
       const participant = await joinRace(inviteCode);
       showToast(t("dashboard.joinSuccess"), "success");
-      navigate(`/races/${participant.race_id}`);
+      navigate(`/app/races/${participant.race_id}`);
     } catch (err: any) {
       console.error(err);
       showToast(err.message || t("dashboard.joinError"), "error");
@@ -417,7 +417,7 @@ export const Dashboard: React.FC = () => {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate("/social")}
+              onClick={() => navigate("/app/social")}
               className="p-2.5 rounded-2xl bg-hyperpink/10 border border-hyperpink/20 text-hyperpink hover:text-white hover:bg-hyperpink hover:border-hyperpink transition-all focus:outline-none cursor-pointer shadow-[0_0_14px_rgba(255,43,214,0.16)]"
               title={t("dashboard.social")}
             >
@@ -479,7 +479,7 @@ export const Dashboard: React.FC = () => {
               </p>
             </div>
             <Button
-              onClick={() => navigate("/races/new")}
+              onClick={() => navigate("/app/races/new")}
               variant="volt"
               fullWidth
               className="mt-2"
@@ -501,7 +501,7 @@ export const Dashboard: React.FC = () => {
               </p>
             </div>
             <Button
-              onClick={() => navigate("/races/public")}
+              onClick={() => navigate("/app/races/public")}
               variant="pink"
               fullWidth
               className="mt-2"
@@ -554,7 +554,7 @@ export const Dashboard: React.FC = () => {
               </p>
             </div>
             <Button
-              onClick={() => navigate("/social")}
+              onClick={() => navigate("/app/social")}
               variant="pink"
               fullWidth
               className="mt-2"
@@ -585,7 +585,7 @@ export const Dashboard: React.FC = () => {
                   <Card
                     key={race.id}
                     hoverable
-                    onClick={() => navigate(`/races/${race.id}`)}
+                    onClick={() => navigate(`/app/races/${race.id}`)}
                     className="p-4 flex items-center justify-between border-white/5 hover:border-volt/30"
                   >
                     <div className="flex flex-col gap-1.5">
@@ -632,7 +632,7 @@ export const Dashboard: React.FC = () => {
                   <Card
                     key={race.id}
                     hoverable
-                    onClick={() => navigate(`/races/${race.id}`)}
+                    onClick={() => navigate(`/app/races/${race.id}`)}
                     className="p-4 flex items-center justify-between border-white/5 hover:border-hyperpink/30"
                   >
                     <div className="flex flex-col gap-1.5">

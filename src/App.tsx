@@ -5,6 +5,7 @@ import { AuthProvider, AuthGuard } from "./components/auth/AuthGuard";
 import { I18nProvider } from "./components/i18n/I18nProvider";
 
 // Route View screens
+import LandingPage from "./routes/LandingPage";
 import Login from "./routes/Login";
 import Dashboard from "./routes/Dashboard";
 import CreateRace from "./routes/CreateRace";
@@ -59,95 +60,90 @@ export const App: React.FC = () => {
               <div className="relative min-h-screen">
                 <Routes>
                 
-                {/* PUBLIC GATE */}
-                <Route path="/login" element={<Login />} />
+                {/* PUBLIC LANDING PAGE */}
+                <Route path="/" element={<LandingPage />} />
                 
-                {/* PROTECTED TELEMETRY TERMINALS */}
-                <Route
-                  path="/dashboard"
-                  element={
-                    <AuthGuard>
-                      <Dashboard />
-                    </AuthGuard>
-                  }
-                />
-                
-                <Route
-                  path="/races/new"
-                  element={
-                    <AuthGuard>
-                      <CreateRace />
-                    </AuthGuard>
-                  }
-                />
-
-                <Route
-                  path="/races/public"
-                  element={
-                    <AuthGuard>
-                      <PublicRaces />
-                    </AuthGuard>
-                  }
-                />
-
-                <Route
-                  path="/hall-of-fame"
-                  element={
-                    <AuthGuard>
-                      <HallOfFame />
-                    </AuthGuard>
-                  }
-                />
-
-                <Route
-                  path="/social"
-                  element={
-                    <AuthGuard>
-                      <Social />
-                    </AuthGuard>
-                  }
-                />
-
-                <Route
-                  path="/profile/:id"
-                  element={
-                    <AuthGuard>
-                      <PublicProfile />
-                    </AuthGuard>
-                  }
-                />
-
-                <Route path="/watch/:id" element={<WatchRace />} />
-                
-                <Route
-                  path="/join/:code"
-                  element={
-                    <AuthGuard>
-                      <JoinRace />
-                    </AuthGuard>
-                  }
-                />
-                
-                <Route
-                  path="/races/:id"
-                  element={
-                    <AuthGuard>
-                      <LiveRace />
-                    </AuthGuard>
-                  }
-                />
-                
-                <Route
-                  path="/races/:id/results"
-                  element={
-                    <AuthGuard>
-                      <Results />
-                    </AuthGuard>
-                  }
-                />
+                {/* APPLICATION ROUTE BOUNDARY */}
+                <Route path="/app">
+                  <Route index element={<Navigate to="/app/dashboard" replace />} />
+                  <Route path="login" element={<Login />} />
+                  <Route
+                    path="dashboard"
+                    element={
+                      <AuthGuard>
+                        <Dashboard />
+                      </AuthGuard>
+                    }
+                  />
+                  <Route
+                    path="races/new"
+                    element={
+                      <AuthGuard>
+                        <CreateRace />
+                      </AuthGuard>
+                    }
+                  />
+                  <Route
+                    path="races/public"
+                    element={
+                      <AuthGuard>
+                        <PublicRaces />
+                      </AuthGuard>
+                    }
+                  />
+                  <Route
+                    path="hall-of-fame"
+                    element={
+                      <AuthGuard>
+                        <HallOfFame />
+                      </AuthGuard>
+                    }
+                  />
+                  <Route
+                    path="social"
+                    element={
+                      <AuthGuard>
+                        <Social />
+                      </AuthGuard>
+                    }
+                  />
+                  <Route
+                    path="profile/:id"
+                    element={
+                      <AuthGuard>
+                        <PublicProfile />
+                      </AuthGuard>
+                    }
+                  />
+                  <Route path="watch/:id" element={<WatchRace />} />
+                  <Route
+                    path="join/:code"
+                    element={
+                      <AuthGuard>
+                        <JoinRace />
+                      </AuthGuard>
+                    }
+                  />
+                  <Route
+                    path="races/:id"
+                    element={
+                      <AuthGuard>
+                        <LiveRace />
+                      </AuthGuard>
+                    }
+                  />
+                  <Route
+                    path="races/:id/results"
+                    element={
+                      <AuthGuard>
+                        <Results />
+                      </AuthGuard>
+                    }
+                  />
+                </Route>
 
                 {/* DEFAULT FALLBACK REDIRECT */}
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
                 
                 </Routes>
               </div>

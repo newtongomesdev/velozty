@@ -146,7 +146,7 @@ export const PublicRaces: React.FC = () => {
       showToast(t("publicRaces.connecting", { race: race.name }), "info");
       await joinRace(race.invite_code);
       showToast(t("publicRaces.joined"), "success");
-      navigate(`/races/${race.id}`);
+      navigate(`/app/races/${race.id}`);
     } catch (err: any) {
       console.error(err);
       showToast(err.message || t("publicRaces.joinError"), "error");
@@ -197,7 +197,7 @@ export const PublicRaces: React.FC = () => {
       <header className="max-w-4xl mx-auto w-full flex items-center justify-between z-10">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/app/dashboard")}
             className="p-3 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all focus:outline-none"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -258,7 +258,7 @@ export const PublicRaces: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => navigate("/hall-of-fame")}
+            onClick={() => navigate("/app/hall-of-fame")}
             className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border bg-hyperpink/10 border-hyperpink/20 text-hyperpink hover:bg-hyperpink/20 text-[10px] font-black uppercase tracking-widest transition-all"
           >
             <Trophy className="h-4 w-4" />
@@ -342,7 +342,7 @@ export const PublicRaces: React.FC = () => {
             </div>
             <Button
               variant="volt"
-              onClick={() => navigate("/races/new")}
+              onClick={() => navigate("/app/races/new")}
               className="mt-3 text-[10px] py-2.5 px-5"
             >
               {t("publicRaces.createPublicRace")}
@@ -457,7 +457,7 @@ export const PublicRaces: React.FC = () => {
                       {(race.allow_spectators ?? true) && (
                         <Button
                           variant="glass"
-                          onClick={() => navigate(`/watch/${race.id}`)}
+                          onClick={() => navigate(`/app/watch/${race.id}`)}
                           className="text-[9px] font-black py-2 px-3 rounded-xl tracking-widest shrink-0"
                         >
                           <Eye className="h-3.5 w-3.5 mr-1" />
