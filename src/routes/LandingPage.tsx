@@ -20,7 +20,6 @@ import {
   ArrowRight, 
   Lock, 
   Crown, 
-  Cpu,
   Moon,
   Sun
 } from "lucide-react";
@@ -28,33 +27,33 @@ import {
 // Local translations to avoid bloating the central i18n.ts file
 const translations = {
   pt: {
-    heroBadge: "⚡ O JEITO MAIS LEGAL DE JUNTAR A GALERA",
-    heroTitlePre: "PEDALE, CORRA E",
-    heroTitleVolt: "DIVIRTA-SE",
-    heroTitlePost: "COM SEUS AMIGOS",
-    heroSubtitle: "O Velozty é a forma mais fácil e divertida de juntar sua turma para pedalar, correr ou caminhar. Acompanhe todo mundo ao vivo no mapa, dispute desafios amigáveis e veja quem chega primeiro, tudo direto no celular!",
-    ctaStart: "Bora Começar!",
-    ctaExplore: "Descobrir Grupos",
+    heroBadge: "O jeito mais fácil de chamar a turma",
+    heroTitlePre: "JUNTE OS AMIGOS",
+    heroTitleVolt: "E CRIE",
+    heroTitlePost: "UMA CORRIDA",
+    heroSubtitle: "O Velozty ajuda você a combinar uma corrida, caminhada ou pedal com os amigos em poucos segundos. Crie o convite, compartilhe o link e acompanhe todo mundo no mapa enquanto a brincadeira acontece.",
+    ctaStart: "Criar minha conta",
+    ctaExplore: "Ver corridas abertas",
     activeRaces: "Grupos Ativos",
     pilotsOnline: "Amigos Conectados",
     avgSpeed: "Ritmo da Galera",
-    simTitle: "Simulador de Rolê Velozty",
-    simSubtitle: "Mantenha pressionado o botão para acelerar seu avatar no mapa!",
-    simSpeed: "Sua Velocidade",
-    simHr: "Coração",
-    simGForce: "Diversão",
-    simPressToAccelerate: "Pressione para Acelerar!",
-    simLimitWarning: "UAU: VOCÊ ESTÁ VOANDO!",
+    simTitle: "Teste o clima da corrida",
+    simSubtitle: "Segure o botão para ver o ritmo subir.",
+    simSpeed: "Seu ritmo",
+    simHr: "Animação",
+    simGForce: "Energia",
+    simPressToAccelerate: "Segure para acelerar",
+    simLimitWarning: "Agora ficou sério!",
     featuresTitle: "Tudo o que você e sua turma precisam",
-    featuresSubtitle: "Ferramentas simples, leves e super legais para animar o seu final de semana.",
+    featuresSubtitle: "Para marcar o encontro, chamar os amigos e acompanhar a corrida sem complicação.",
     feat1Title: "Todo Mundo no Mapa",
-    feat1Desc: "Veja onde cada amigo está no mapa em tempo real. Perfeito para ninguém se perder no caminho!",
+    feat1Desc: "Veja onde cada amigo está durante a corrida. Fica mais fácil acompanhar, torcer e esperar a turma chegar.",
     feat2Title: "Leve e Sem Complicação",
     feat2Desc: "Funciona direto no navegador do celular, sem precisar instalar nada pesado. É só clicar e sair usando.",
-    feat3Title: "Lobbies de Desafio",
-    feat3Desc: "Crie um grupo de corrida ou pedal em segundos. Largadas sincronizadas com contagem regressiva para todo mundo.",
+    feat3Title: "Convite em Segundos",
+    feat3Desc: "Crie uma corrida ou pedal, mande o link para os amigos e deixe todo mundo entrar pelo celular.",
     feat4Title: "Ranking da Turma",
-    feat4Desc: "Consagre-se o campeão do final de semana no Hall da Fama e lidere a pontuação geral da galera.",
+    feat4Desc: "Guarde os resultados e veja quem foi o campeão da rodada, por brincadeira ou por desafio.",
     pricingTitle: "Acesso Livre para Todos",
     pricingSubtitle: "Escolha o melhor jeito de pedalar e correr com seus amigos.",
     plan1Name: "Amigos no Rolê",
@@ -81,47 +80,47 @@ const translations = {
     plan3Feat2: "Painel de controle para grandes grupos",
     plan3Feat3: "Estatísticas avançadas de todo o clube",
     plan3Feat4: "Suporte prioritário e eventos públicos personalizados",
-    pricingCta: "Garantir Minha Vaga no Grid",
+    pricingCta: "Começar com a turma",
     faqTitle: "Perguntas Frequentes",
     faqSubtitle: "Tudo o que você precisa saber para começar a usar com seus amigos.",
     faqQ1: "Como funciona o Velozty?",
-    faqA1: "O aplicativo usa o GPS do seu próprio celular para marcar seu trajeto e velocidade. Ao criar ou entrar em um grupo, essas informações são compartilhadas de forma rápida e segura com seus amigos. Assim, todo mundo consegue ver a posição de todo mundo ao vivo em um lindo mapa interativo!",
+    faqA1: "Você cria uma corrida ou pedal, manda o convite para os amigos e todos entram pelo celular. Durante o encontro, o mapa mostra onde cada pessoa está para a turma acompanhar junto.",
     faqQ2: "Preciso comprar algum acessório ou sensor?",
-    faqA2: "Não! O Velozty roda direto no navegador do seu smartphone (Chrome ou Safari). Não precisa comprar relógios caros ou sensores. Basta dar permissão de localização no celular e o jogo começa!",
+    faqA2: "Não. O Velozty funciona direto no navegador do celular. Basta entrar pelo link, permitir a localização quando for participar e começar.",
     faqQ3: "Gasta muita bateria ou dados de internet?",
-    faqA3: "O aplicativo foi super otimizado para ser o mais leve possível! Ele consome pouquíssima internet (menos de 5MB por hora de uso) e tem um modo especial de economia de tela para poupar bateria enquanto o celular está no seu bolso.",
+    faqA3: "O app foi feito para ser leve. Mesmo assim, como usa localização durante a corrida, vale sair com o celular carregado.",
     faqQ4: "Posso jogar apenas com meus amigos mais próximos?",
-    faqA4: "Com certeza! Ao criar um grupo de desafio ou pedal, você pode deixá-lo no modo Privado. Assim, apenas quem receber o código de convite de 6 dígitos que você enviar poderá entrar no mapa e participar.",
+    faqA4: "Pode. Ao criar a corrida, você escolhe se ela será pública ou privada. Se for privada, só entra quem receber seu convite.",
     footerText: "Velozty. Criado com carinho para aproximar pessoas e espalhar diversão.",
     footerPrivacy: "Políticas de Privacidade",
     footerTerms: "Termos de Uso",
   },
   en: {
-    heroBadge: "⚡ THE COOLEST APP TO GATHER YOUR FRIENDS",
-    heroTitlePre: "RIDE, RUN AND",
-    heroTitleVolt: "HAVE FUN",
-    heroTitlePost: "WITH YOUR FRIENDS",
-    heroSubtitle: "Velozty is the easiest way to gather your crew for cycling, running, or walking. Follow everyone live on the map, challenge your friends to friendly races, and see who arrives first—all straight from your phone!",
-    ctaStart: "Let's Get Started!",
-    ctaExplore: "Find Active Lobbies",
+    heroBadge: "The easy way to gather your friends",
+    heroTitlePre: "BRING FRIENDS",
+    heroTitleVolt: "TOGETHER",
+    heroTitlePost: "FOR A RACE",
+    heroSubtitle: "Velozty helps you set up a run, walk, or ride with friends in seconds. Create the invite, share the link, and follow everyone on the map while the fun is happening.",
+    ctaStart: "Create my account",
+    ctaExplore: "See open races",
     activeRaces: "Active Groups",
     pilotsOnline: "Friends Online",
     avgSpeed: "Crew's Pace",
-    simTitle: "Velozty Ride Simulator",
-    simSubtitle: "Hold down the button to accelerate your avatar on the map!",
-    simSpeed: "Your Speed",
-    simHr: "Heart Rate",
-    simGForce: "Fun Factor",
-    simPressToAccelerate: "Press to Accelerate!",
-    simLimitWarning: "WOW: YOU ARE FLYING!",
+    simTitle: "Feel the race mood",
+    simSubtitle: "Hold the button to raise the pace.",
+    simSpeed: "Your Pace",
+    simHr: "Excitement",
+    simGForce: "Energy",
+    simPressToAccelerate: "Hold to speed up",
+    simLimitWarning: "Now it is getting real!",
     featuresTitle: "Everything You and Your Crew Need",
     featuresSubtitle: "Simple, lightweight, and super fun tools for your weekend.",
     feat1Title: "Everyone on the Map",
     feat1Desc: "See where every friend is on the map in real time. Perfect for keeping the crew together!",
     feat2Title: "Light & Hassle-Free",
     feat2Desc: "Runs straight in your phone's browser, no heavy installations needed. Just click and go.",
-    feat3Title: "Friendly Lobbies",
-    feat3Desc: "Create a cycling or running group in seconds. Sychronized starts with live countdowns.",
+    feat3Title: "Quick Invites",
+    feat3Desc: "Create a run or ride, send the link, and let everyone join from their phone.",
     feat4Title: "Crew Leaderboards",
     feat4Desc: "Claim your weekend champion title on the Hall of Fame and lead the general crew scores.",
     pricingTitle: "Free Access for Everyone",
@@ -150,11 +149,11 @@ const translations = {
     plan3Feat2: "Management panel for large groups",
     plan3Feat3: "Advanced comparative telemetry for the club",
     plan3Feat4: "Priority support & custom public events",
-    pricingCta: "Claim My Grid Spot",
+    pricingCta: "Start with friends",
     faqTitle: "Frequently Asked Questions",
     faqSubtitle: "Everything you need to know to start riding with friends.",
     faqQ1: "How does Velozty work?",
-    faqA1: "The app uses your phone's built-in GPS to track your route and speed. When you join or create a group, this info is securely shared with your friends. Everyone can track each other's live location on a beautiful interactive map!",
+    faqA1: "Create a run or ride, send the invite, and everyone joins from their phone. During the activity, the map shows where each person is so the group can follow along.",
     faqQ2: "Do I need to buy any smartwatch or special sensor?",
     faqA2: "No! Velozty runs straight in your smartphone's browser (Chrome or Safari). No expensive gear needed. Just enable location permissions and let the fun begin!",
     faqQ3: "Does it drain battery or use too much internet?",
@@ -166,31 +165,31 @@ const translations = {
     footerTerms: "Terms of Use",
   },
   es: {
-    heroBadge: "⚡ LA APP MÁS DIVERTIDA PARA JUNTAR A TUS AMIGOS",
-    heroTitlePre: "PEDALEA, CORRE Y",
-    heroTitleVolt: "DIVIÉRTETE",
-    heroTitlePost: "CON TUS AMIGOS",
-    heroSubtitle: "Velozty es la forma más fácil y divertida de juntar a tu grupo para pedalear, correr o caminar. ¡Sigue a todos en vivo en el mapa, compite en retos amistosos y mira quién llega primero, todo directo en tu móvil!",
-    ctaStart: "¡Vamos a Empezar!",
-    ctaExplore: "Ver Grupos Activos",
+    heroBadge: "La forma fácil de juntar a tus amigos",
+    heroTitlePre: "JUNTA A TUS AMIGOS",
+    heroTitleVolt: "Y CREA",
+    heroTitlePost: "UNA CARRERA",
+    heroSubtitle: "Velozty te ayuda a organizar una carrera, caminata o rodada con amigos en segundos. Crea la invitación, comparte el enlace y sigue a todos en el mapa mientras ocurre la diversión.",
+    ctaStart: "Crear mi cuenta",
+    ctaExplore: "Ver carreras abiertas",
     activeRaces: "Grupos Activos",
     pilotsOnline: "Amigos Online",
     avgSpeed: "Ritmo del Grupo",
-    simTitle: "Simulador de Paseo Velozty",
-    simSubtitle: "¡Mantén presionado el botón para acelerar tu avatar en el mapa!",
-    simSpeed: "Tu Velocidad",
-    simHr: "Pulsaciones",
-    simGForce: "Fuerza G",
-    simPressToAccelerate: "¡Mantén para Acelerar!",
-    simLimitWarning: "¡GUAU: ESTÁS VOLANDO!",
+    simTitle: "Siente el ritmo de la carrera",
+    simSubtitle: "Mantén el botón para subir el ritmo.",
+    simSpeed: "Tu Ritmo",
+    simHr: "Emoción",
+    simGForce: "Energía",
+    simPressToAccelerate: "Mantén para acelerar",
+    simLimitWarning: "¡Ahora va en serio!",
     featuresTitle: "Todo lo que tú y tu grupo necesitan",
     featuresSubtitle: "Herramientas sencillas, ligeras y muy divertidas para tu fin de semana.",
     feat1Title: "Todos en el Mapa",
     feat1Desc: "Mira dónde está cada amigo en el mapa en tiempo real. ¡Perfecto para mantener al grupo unido!",
     feat2Title: "Ligero y Sin Complicaciones",
     feat2Desc: "Funciona directamente en el navegador del móvil, sin instalar apps pesadas. Clic y listo.",
-    feat3Title: "Lobbies de Retos",
-    feat3Desc: "Crea un grupo de ciclismo o running en segundos. Salidas sincronizadas con cuenta atrás para todos.",
+    feat3Title: "Invitación en Segundos",
+    feat3Desc: "Crea una carrera o rodada, comparte el enlace y deja que todos entren desde el móvil.",
     feat4Title: "Clasificación del Grupo",
     feat4Desc: "Conságrate campeón del fin de semana en el Salón de la Fama y lidera las puntuaciones del grupo.",
     pricingTitle: "Acceso Libre para Todos",
@@ -219,11 +218,11 @@ const translations = {
     plan3Feat2: "Panel de control para grupos numerosos",
     plan3Feat3: "Análisis comparativo de telemetría para el club",
     plan3Feat4: "Soporte VIP y hospedaje de eventos personalizados",
-    pricingCta: "Asegurar Mi Lugar en la Parrilla",
+    pricingCta: "Empezar con amigos",
     faqTitle: "Preguntas Frecuentes",
     faqSubtitle: "Todo lo que necesitas saber para empezar a jugar con amigos.",
     faqQ1: "¿Cómo funciona Velozty?",
-    faqA1: "La app usa el GPS integrado de tu móvil para medir tu ruta y velocidad. Al unirte o crear un grupo, esa información se comparte de forma rápida y segura con tus amigos. ¡Así todos pueden ver la ubicación del grupo al instante en un hermoso mapa interactivo!",
+    faqA1: "Crea una carrera o rodada, envía la invitación y todos entran desde el móvil. Durante la actividad, el mapa muestra dónde está cada persona para que el grupo acompañe junto.",
     faqQ2: "¿Necesito comprar algún reloj inteligente o sensor especial?",
     faqA2: "¡No! Velozty funciona directo en el navegador de tu móvil (Chrome o Safari). No necesitas relojes caros. Concede permisos de ubicación y ¡que empiece la diversión!",
     faqQ3: "¿Consume mucha batería o datos móviles?",
@@ -392,7 +391,13 @@ export const LandingPage: React.FC = () => {
           <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase italic text-white leading-none">
             {t.heroTitlePre} <br className="hidden sm:block" />
             <span className="text-volt drop-shadow-[0_0_15px_rgba(198,255,0,0.3)]">{t.heroTitleVolt}</span> <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-white/40">{t.heroTitlePost}</span>
+            <span className={`text-transparent bg-clip-text ${
+              theme === "light" 
+                ? "bg-gradient-to-r from-slate-900 via-slate-900 to-slate-900/60" 
+                : "bg-gradient-to-r from-white via-white to-white/40"
+            }`}>
+              {t.heroTitlePost}
+            </span>
           </h1>
 
           {/* Subtitle */}
@@ -451,7 +456,7 @@ export const LandingPage: React.FC = () => {
             {/* Header simulation bar */}
             <div className="flex justify-between items-center mb-6 pb-4 border-b border-white/5 select-none">
               <div className="flex items-center gap-2">
-                <Cpu className="h-4.5 w-4.5 text-volt" />
+                <Users className="h-4.5 w-4.5 text-volt" />
                 <span className="text-[10px] font-black uppercase tracking-wider text-white">{t.simTitle}</span>
               </div>
               <div className="flex items-center gap-2 text-[9px] font-black tracking-widest text-mutedgray">
@@ -549,7 +554,7 @@ export const LandingPage: React.FC = () => {
                   />
                 )}
               </svg>
-              <div className="absolute top-2 left-2 text-[8px] font-black uppercase tracking-wider text-mutedgray/60 font-mono">SENSOR_STREAM.DAT</div>
+              <div className="absolute top-2 left-2 text-[8px] font-black uppercase tracking-wider text-mutedgray/60 font-mono">RITMO DA TURMA</div>
             </div>
 
             {/* Limit Warning banner if high speed reached */}
@@ -574,7 +579,7 @@ export const LandingPage: React.FC = () => {
             >
               <div className="flex items-center justify-center gap-2">
                 <Gauge className={`h-4 w-4 ${isAccelerating ? "animate-spin" : ""}`} />
-                {isAccelerating ? "BOOST ACTIVE" : t.simPressToAccelerate}
+                {isAccelerating ? "Acelerando" : t.simPressToAccelerate}
               </div>
             </button>
             <p className="text-[9px] font-black text-center text-mutedgray/50 uppercase tracking-widest mt-2">{t.simSubtitle}</p>
@@ -587,7 +592,7 @@ export const LandingPage: React.FC = () => {
         
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16 select-none">
-          <span className="text-[9px] font-black tracking-[0.25em] text-volt uppercase block mb-2">FEATURES PACK</span>
+          <span className="text-[9px] font-black tracking-[0.25em] text-volt uppercase block mb-2">PARA A TURMA</span>
           <h2 className="text-3xl md:text-4xl font-black uppercase italic tracking-tight">{t.featuresTitle}</h2>
           <p className="text-xs font-black uppercase text-mutedgray mt-2 tracking-wide leading-relaxed">{t.featuresSubtitle}</p>
         </div>
@@ -638,7 +643,7 @@ export const LandingPage: React.FC = () => {
         
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16 select-none">
-          <span className="text-[9px] font-black tracking-[0.25em] text-hyperpink uppercase block mb-2">GRID MEMBERSHIP</span>
+          <span className="text-[9px] font-black tracking-[0.25em] text-hyperpink uppercase block mb-2">PLANOS SIMPLES</span>
           <h2 className="text-3xl md:text-4xl font-black uppercase italic tracking-tight">{t.pricingTitle}</h2>
           <p className="text-xs font-black uppercase text-mutedgray mt-2 tracking-wide leading-relaxed">{t.pricingSubtitle}</p>
         </div>
@@ -745,7 +750,7 @@ export const LandingPage: React.FC = () => {
           <Card className="flex flex-col justify-between border border-white/10 p-8 bg-black/40 hover:scale-[1.01] transition-transform duration-300 relative">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Cpu className="h-4.5 w-4.5 text-hyperpink" />
+                <Users className="h-4.5 w-4.5 text-hyperpink" />
                 <span className="text-sm font-black uppercase tracking-widest text-hyperpink">{t.plan3Name}</span>
               </div>
               <p className="text-[10px] text-mutedgray uppercase font-bold leading-normal mb-6">{t.plan3Desc}</p>
@@ -793,7 +798,7 @@ export const LandingPage: React.FC = () => {
         
         {/* Section Header */}
         <div className="text-center mb-16 select-none">
-          <span className="text-[9px] font-black tracking-[0.25em] text-volt uppercase block mb-2">KNOWLEDGE BASE</span>
+          <span className="text-[9px] font-black tracking-[0.25em] text-volt uppercase block mb-2">DÚVIDAS COMUNS</span>
           <h2 className="text-3xl font-black uppercase italic tracking-tight">{t.faqTitle}</h2>
           <p className="text-xs font-black uppercase text-mutedgray mt-2 tracking-wide">{t.faqSubtitle}</p>
         </div>
