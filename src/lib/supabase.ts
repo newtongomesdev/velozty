@@ -1,8 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
 // Retrieve keys from environmental variables
-const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
+const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || "";
+const supabaseAnonKey = import.meta.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || "";
 
 export const isUsingMock = !supabaseUrl || !supabaseAnonKey;
 
@@ -10,6 +10,10 @@ export const isUsingMock = !supabaseUrl || !supabaseAnonKey;
 export const supabase = isUsingMock 
   ? null 
   : createClient(supabaseUrl, supabaseAnonKey);
+
+if (typeof window !== "undefined" && supabase) {
+  (window as any).supabaseClient = supabase;
+}
 
 if (isUsingMock) {
   console.warn("Velozty: Supabase credentials missing. Running in premium Local Simulation Mode!");
@@ -256,9 +260,23 @@ export async function getCurrentUser(existingUser?: any): Promise<Profile | null
   }
   
   console.log("DEBUG [getCurrentUser] User session active for ID:", user.id);
+  
+  // Fallback virtual profile template in case we fail to query/create in the DB
+  const fallbackDisplayName = user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Atleta";
+  const fallbackUsername = (user.user_metadata?.username || user.email?.split("@")[0] || `user_${user.id.substring(0, 8)}`).toLowerCase().replace(/[^a-z0-9_]/g, "");
+  const virtualProfile: Profile = {
+    id: user.id,
+    display_name: fallbackDisplayName,
+    avatar_url: user.user_metadata?.avatar_url || "",
+    username: fallbackUsername,
+    email: user.email,
+    created_at: user.created_at || new Date().toISOString(),
+    is_public: true
+  };
+
   console.log("DEBUG [getCurrentUser] Querying profiles table for ID:", user.id);
 
-  // Race the query against a timeout so we never block loading indefinitely
+  // Race the query against a timeout so we never block loading indefinitely (3.5 seconds)
   const profileQueryPromise = supabase
     .from("profiles")
     .select("*")
@@ -266,19 +284,58 @@ export async function getCurrentUser(existingUser?: any): Promise<Profile | null
     .single();
 
   const timeoutPromise = new Promise<{ data: null; error: { message: string; code: string } }>((resolve) =>
-    setTimeout(() => resolve({ data: null, error: { message: "Profiles query timed out", code: "TIMEOUT" } }), 8000)
+    setTimeout(() => resolve({ data: null, error: { message: "Profiles query timed out", code: "TIMEOUT" } }), 3500)
   );
 
-  const { data: profile, error: profileError } = await Promise.race([profileQueryPromise, timeoutPromise]) as Awaited<typeof profileQueryPromise>;
+  let profile = null;
+  let profileError = null;
 
-  if (profileError) {
-    console.error("DEBUG [getCurrentUser] Profiles query error:", profileError);
-    return null;
-  } else {
-    console.log("DEBUG [getCurrentUser] Profiles query succeeded. Profile data:", profile);
+  try {
+    const { data, error } = await Promise.race([profileQueryPromise, timeoutPromise]) as Awaited<typeof profileQueryPromise>;
+    profile = data;
+    profileError = error;
+  } catch (err: any) {
+    console.error("DEBUG [getCurrentUser] Promise.race exception:", err);
+    profileError = err;
   }
 
-  return profile ? { ...profile, email: user.email } : null;
+  // If profiles query fails because the row is missing (or generic query error indicating not found)
+  if (!profile || (profileError && (profileError.code === "PGRST116" || profileError.code === "22P02"))) {
+    console.log("DEBUG [getCurrentUser] Profile row not found. Attempting to auto-create profile in DB...");
+    try {
+      const { data: insertedProfile, error: insertError } = await supabase
+        .from("profiles")
+        .insert({
+          id: user.id,
+          display_name: fallbackDisplayName,
+          avatar_url: user.user_metadata?.avatar_url || "",
+          username: fallbackUsername,
+          is_public: true,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (insertError) {
+        console.error("DEBUG [getCurrentUser] Error inserting profile row in DB:", insertError);
+        console.log("DEBUG [getCurrentUser] Returning virtual profile fallback to avoid blocking the user.");
+        return virtualProfile;
+      }
+      
+      console.log("DEBUG [getCurrentUser] Profile row auto-created successfully in DB:", insertedProfile);
+      profile = insertedProfile;
+    } catch (insertEx) {
+      console.error("DEBUG [getCurrentUser] Exception during profile insertion:", insertEx);
+      console.log("DEBUG [getCurrentUser] Returning virtual profile fallback to avoid blocking the user.");
+      return virtualProfile;
+    }
+  } else if (profileError) {
+    console.error("DEBUG [getCurrentUser] Profiles query failed with error:", profileError);
+    console.log("DEBUG [getCurrentUser] Returning virtual profile fallback to avoid blocking the user.");
+    return virtualProfile;
+  }
+
+  return profile ? { ...profile, email: user.email } : virtualProfile;
 }
 
 export async function mockLogin(email: string, name?: string): Promise<Profile> {
@@ -363,7 +420,8 @@ export async function updateUserProfile(input: {
     if (!supabase) throw new Error("Supabase não configurado");
     const { data, error } = await supabase
       .from("profiles")
-      .update({ 
+      .upsert({ 
+        id: user.id,
         display_name: input.display_name,
         country: input.country,
         state: input.state,
@@ -374,8 +432,8 @@ export async function updateUserProfile(input: {
         website: input.website,
         avatar_url: input.avatar_url,
         is_public: input.is_public,
+        created_at: user.created_at || new Date().toISOString()
       })
-      .eq("id", user.id)
       .select()
       .single();
     if (error) throw error;

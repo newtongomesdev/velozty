@@ -38,7 +38,7 @@ export const JoinRace: React.FC = () => {
         }
         
         // If not found in mock or we are using real Supabase
-        if (!matchedRace && import.meta.env.NEXT_PUBLIC_SUPABASE_URL) {
+        if (!matchedRace && (import.meta.env.NEXT_PUBLIC_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL)) {
           const { data, error } = await (window as any).supabaseClient
             ? (window as any).supabaseClient.from("races").select("*").eq("invite_code", inviteCode.toUpperCase()).single()
             : { data: null, error: new Error("Offline") };
