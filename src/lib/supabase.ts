@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type User } from "@supabase/supabase-js";
 
 // Retrieve keys from environmental variables
 const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || "";
@@ -233,33 +233,21 @@ export const mockEmitter = new MockEventEmitter();
 // Active Mock User state
 let mockCurrentUser: Profile | null = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || "null");
 
-export async function getCurrentUser(existingUser?: any): Promise<Profile | null> {
+export async function getCurrentUser(existingUser?: User): Promise<Profile | null> {
   if (isUsingMock) {
     return mockCurrentUser;
   }
   
-  if (!supabase) {
-    console.log("DEBUG [getCurrentUser] Supabase client is null or offline");
-    return null;
-  }
+  if (!supabase) return null;
   
-  let user = existingUser;
+  let user: User | null = existingUser ?? null;
   if (!user) {
-    console.log("DEBUG [getCurrentUser] Fetching session from supabase.auth.getSession()...");
     const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) {
-      console.error("DEBUG [getCurrentUser] auth.getSession() error:", error);
-      return null;
-    }
+    if (error) return null;
     user = session?.user ?? null;
   }
   
-  if (!user) {
-    console.log("DEBUG [getCurrentUser] No active user session found");
-    return null;
-  }
-  
-  console.log("DEBUG [getCurrentUser] User session active for ID:", user.id);
+  if (!user) return null;
   
   // Fallback virtual profile template in case we fail to query/create in the DB
   const fallbackDisplayName = user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Atleta";
@@ -274,14 +262,12 @@ export async function getCurrentUser(existingUser?: any): Promise<Profile | null
     is_public: true
   };
 
-  console.log("DEBUG [getCurrentUser] Querying profiles table for ID:", user.id);
-
   // Race the query against a timeout so we never block loading indefinitely (3.5 seconds)
   const profileQueryPromise = supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
 
   const timeoutPromise = new Promise<{ data: null; error: { message: string; code: string } }>((resolve) =>
     setTimeout(() => resolve({ data: null, error: { message: "Profiles query timed out", code: "TIMEOUT" } }), 3500)
@@ -294,14 +280,11 @@ export async function getCurrentUser(existingUser?: any): Promise<Profile | null
     const { data, error } = await Promise.race([profileQueryPromise, timeoutPromise]) as Awaited<typeof profileQueryPromise>;
     profile = data;
     profileError = error;
-  } catch (err: any) {
-    console.error("DEBUG [getCurrentUser] Promise.race exception:", err);
+  } catch (err: unknown) {
     profileError = err;
   }
 
-  // If profiles query fails because the row is missing (or generic query error indicating not found)
-  if (!profile || (profileError && (profileError.code === "PGRST116" || profileError.code === "22P02"))) {
-    console.log("DEBUG [getCurrentUser] Profile row not found. Attempting to auto-create profile in DB...");
+  if (!profile && !profileError) {
     try {
       const { data: insertedProfile, error: insertError } = await supabase
         .from("profiles")
@@ -310,6 +293,7 @@ export async function getCurrentUser(existingUser?: any): Promise<Profile | null
           display_name: fallbackDisplayName,
           avatar_url: user.user_metadata?.avatar_url || "",
           username: fallbackUsername,
+          email: user.email,
           is_public: true,
           created_at: new Date().toISOString()
         })
@@ -317,21 +301,19 @@ export async function getCurrentUser(existingUser?: any): Promise<Profile | null
         .single();
 
       if (insertError) {
-        console.error("DEBUG [getCurrentUser] Error inserting profile row in DB:", insertError);
-        console.log("DEBUG [getCurrentUser] Returning virtual profile fallback to avoid blocking the user.");
-        return virtualProfile;
+        const { data: currentProfile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .maybeSingle();
+        return currentProfile ? { ...currentProfile, email: user.email } : virtualProfile;
       }
       
-      console.log("DEBUG [getCurrentUser] Profile row auto-created successfully in DB:", insertedProfile);
       profile = insertedProfile;
     } catch (insertEx) {
-      console.error("DEBUG [getCurrentUser] Exception during profile insertion:", insertEx);
-      console.log("DEBUG [getCurrentUser] Returning virtual profile fallback to avoid blocking the user.");
       return virtualProfile;
     }
   } else if (profileError) {
-    console.error("DEBUG [getCurrentUser] Profiles query failed with error:", profileError);
-    console.log("DEBUG [getCurrentUser] Returning virtual profile fallback to avoid blocking the user.");
     return virtualProfile;
   }
 
