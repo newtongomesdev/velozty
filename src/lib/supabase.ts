@@ -241,13 +241,13 @@ export async function getCurrentUser(existingUser?: any): Promise<Profile | null
   
   let user = existingUser;
   if (!user) {
-    console.log("DEBUG [getCurrentUser] Fetching user from supabase.auth.getUser()...");
-    const { data: { user: authUser }, error } = await supabase.auth.getUser();
+    console.log("DEBUG [getCurrentUser] Fetching session from supabase.auth.getSession()...");
+    const { data: { session }, error } = await supabase.auth.getSession();
     if (error) {
-      console.error("DEBUG [getCurrentUser] auth.getUser() error:", error);
+      console.error("DEBUG [getCurrentUser] auth.getSession() error:", error);
       return null;
     }
-    user = authUser;
+    user = session?.user ?? null;
   }
   
   if (!user) {
@@ -257,14 +257,23 @@ export async function getCurrentUser(existingUser?: any): Promise<Profile | null
   
   console.log("DEBUG [getCurrentUser] User session active for ID:", user.id);
   console.log("DEBUG [getCurrentUser] Querying profiles table for ID:", user.id);
-  const { data: profile, error: profileError } = await supabase
+
+  // Race the query against a timeout so we never block loading indefinitely
+  const profileQueryPromise = supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
 
+  const timeoutPromise = new Promise<{ data: null; error: { message: string; code: string } }>((resolve) =>
+    setTimeout(() => resolve({ data: null, error: { message: "Profiles query timed out", code: "TIMEOUT" } }), 8000)
+  );
+
+  const { data: profile, error: profileError } = await Promise.race([profileQueryPromise, timeoutPromise]) as Awaited<typeof profileQueryPromise>;
+
   if (profileError) {
     console.error("DEBUG [getCurrentUser] Profiles query error:", profileError);
+    return null;
   } else {
     console.log("DEBUG [getCurrentUser] Profiles query succeeded. Profile data:", profile);
   }
