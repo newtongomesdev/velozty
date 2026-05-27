@@ -229,7 +229,7 @@ export const mockEmitter = new MockEventEmitter();
 // Active Mock User state
 let mockCurrentUser: Profile | null = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || "null");
 
-export async function getCurrentUser(): Promise<Profile | null> {
+export async function getCurrentUser(existingUser?: any): Promise<Profile | null> {
   if (isUsingMock) {
     return mockCurrentUser;
   }
@@ -239,12 +239,17 @@ export async function getCurrentUser(): Promise<Profile | null> {
     return null;
   }
   
-  console.log("DEBUG [getCurrentUser] Fetching user from supabase.auth.getUser()...");
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error) {
-    console.error("DEBUG [getCurrentUser] auth.getUser() error:", error);
-    return null;
+  let user = existingUser;
+  if (!user) {
+    console.log("DEBUG [getCurrentUser] Fetching user from supabase.auth.getUser()...");
+    const { data: { user: authUser }, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error("DEBUG [getCurrentUser] auth.getUser() error:", error);
+      return null;
+    }
+    user = authUser;
   }
+  
   if (!user) {
     console.log("DEBUG [getCurrentUser] No active user session found");
     return null;

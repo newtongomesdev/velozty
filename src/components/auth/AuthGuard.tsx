@@ -66,7 +66,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log("DEBUG [onAuthStateChange] Event:", event, "User ID in session:", session?.user?.id || "None");
         if (session?.user) {
           console.log("DEBUG [onAuthStateChange] Session user detected. Loading profile...");
-          const u = await getCurrentUser();
+          const u = await getCurrentUser(session.user);
           console.log("DEBUG [onAuthStateChange] Profile loaded:", u?.id || "None");
           setUser(u);
         } else {
