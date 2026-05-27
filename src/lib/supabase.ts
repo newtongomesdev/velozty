@@ -1639,7 +1639,8 @@ export async function fetchSocialFeed(): Promise<SocialPost[]> {
   );
   if (followsError) throw followsError;
   const ids = [user.id, ...((follows || []) as { following_id: string }[]).map(f => f.following_id)];
-  const { data, error: postsError } = await withTimeout(
+  let posts: SocialPost[] = [];
+  const personalizedPostsResult = await withTimeout(
     supabase
       .from("social_posts")
       .select("*")
@@ -1648,8 +1649,23 @@ export async function fetchSocialFeed(): Promise<SocialPost[]> {
     5000,
     "Social posts query timed out",
   );
-  if (postsError) throw postsError;
-  const posts = (data || []) as SocialPost[];
+  if (personalizedPostsResult.error) throw personalizedPostsResult.error;
+  posts = (personalizedPostsResult.data || []) as SocialPost[];
+
+  if (posts.length === 0) {
+    const communityPostsResult = await withTimeout(
+      supabase
+        .from("social_posts")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(20),
+      5000,
+      "Community social posts query timed out",
+    );
+    if (communityPostsResult.error) throw communityPostsResult.error;
+    posts = (communityPostsResult.data || []) as SocialPost[];
+  }
+
   if (posts.length === 0) return [];
 
   const postIds = posts.map(post => post.id);
