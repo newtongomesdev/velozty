@@ -61,8 +61,8 @@ const Social: React.FC = () => {
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [mentionTarget, setMentionTarget] = useState<MentionTarget | null>(null);
 
-  const loadSocialData = async () => {
-    setLoading(true);
+  const loadSocialData = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     try {
       const [feedData, profileData] = await Promise.all([
         fetchSocialFeed(),
@@ -73,7 +73,7 @@ const Social: React.FC = () => {
     } catch (err) {
       showToast(t("social.loadError"), "error");
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 
@@ -137,7 +137,7 @@ const Social: React.FC = () => {
       await createSocialPost(content);
       setContent("");
       showToast(t("social.postCreated"), "success");
-      await loadSocialData();
+      await loadSocialData(true); // Silent update
     } catch (err) {
       showToast(t("social.postError"), "error");
     } finally {
@@ -146,26 +146,79 @@ const Social: React.FC = () => {
   };
 
   const handleToggleFollow = async (profile: SocialProfile) => {
+    // Optimistic state update
+    setProfiles(prev => prev.map(p => {
+      if (p.id === profile.id) {
+        const following = !p.is_following;
+        return {
+          ...p,
+          is_following: following,
+          followers_count: following ? (p.followers_count || 0) + 1 : Math.max(0, (p.followers_count || 0) - 1)
+        };
+      }
+      return p;
+    }));
     try {
       if (profile.is_following) {
         await unfollowUser(profile.id);
       } else {
         await followUser(profile.id);
       }
-      await loadSocialData();
+      await loadSocialData(true); // Silent update in background
     } catch (err) {
       showToast(t("social.followError"), "error");
+      await loadSocialData(true); // Revert/sync
     }
   };
 
   const handleToggleLike = async (postId: string) => {
-    await toggleSocialLike(postId);
-    await loadSocialData();
+    // Optimistic state update
+    setPosts(prev => prev.map(p => {
+      if (p.id === postId) {
+        const liked = !p.liked_by_current_user;
+        return {
+          ...p,
+          liked_by_current_user: liked,
+          likes_count: liked ? (p.likes_count || 0) + 1 : Math.max(0, (p.likes_count || 0) - 1)
+        };
+      }
+      return p;
+    }));
+    try {
+      await toggleSocialLike(postId);
+      await loadSocialData(true); // Silent update
+    } catch (err) {
+      await loadSocialData(true); // Sync
+    }
   };
 
   const handleToggleCommentLike = async (commentId: string) => {
-    await toggleSocialCommentLike(commentId);
-    await loadSocialData();
+    // Optimistic state update
+    setPosts(prev => prev.map(p => {
+      if (p.comments) {
+        return {
+          ...p,
+          comments: p.comments.map(c => {
+            if (c.id === commentId) {
+              const liked = !c.liked_by_current_user;
+              return {
+                ...c,
+                liked_by_current_user: liked,
+                likes_count: liked ? (c.likes_count || 0) + 1 : Math.max(0, (c.likes_count || 0) - 1)
+              };
+            }
+            return c;
+          })
+        };
+      }
+      return p;
+    }));
+    try {
+      await toggleSocialCommentLike(commentId);
+      await loadSocialData(true); // Silent update
+    } catch (err) {
+      await loadSocialData(true); // Sync
+    }
   };
 
   const openProfile = (profileId: string) => {
@@ -179,7 +232,7 @@ const Social: React.FC = () => {
     try {
       await createSocialComment(postId, text);
       setCommentDrafts(prev => ({ ...prev, [postId]: "" }));
-      await loadSocialData();
+      await loadSocialData(true); // Silent update
     } catch (err) {
       showToast(t("social.commentError"), "error");
     }
@@ -228,7 +281,7 @@ const Social: React.FC = () => {
           </div>
         </div>
         <button
-          onClick={loadSocialData}
+          onClick={() => loadSocialData()}
           disabled={loading}
           className="p-3 rounded-2xl bg-white/5 border border-white/10 text-mutedgray hover:text-white disabled:opacity-50"
         >
