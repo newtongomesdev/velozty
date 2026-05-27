@@ -234,16 +234,35 @@ export async function getCurrentUser(): Promise<Profile | null> {
     return mockCurrentUser;
   }
   
-  if (!supabase) return null;
+  if (!supabase) {
+    console.log("DEBUG [getCurrentUser] Supabase client is null or offline");
+    return null;
+  }
   
+  console.log("DEBUG [getCurrentUser] Fetching user from supabase.auth.getUser()...");
   const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return null;
+  if (error) {
+    console.error("DEBUG [getCurrentUser] auth.getUser() error:", error);
+    return null;
+  }
+  if (!user) {
+    console.log("DEBUG [getCurrentUser] No active user session found");
+    return null;
+  }
   
-  const { data: profile } = await supabase
+  console.log("DEBUG [getCurrentUser] User session active for ID:", user.id);
+  console.log("DEBUG [getCurrentUser] Querying profiles table for ID:", user.id);
+  const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .single();
+
+  if (profileError) {
+    console.error("DEBUG [getCurrentUser] Profiles query error:", profileError);
+  } else {
+    console.log("DEBUG [getCurrentUser] Profiles query succeeded. Profile data:", profile);
+  }
 
   return profile ? { ...profile, email: user.email } : null;
 }

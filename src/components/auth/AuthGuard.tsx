@@ -31,13 +31,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let active = true;
 
     async function checkSession() {
+      console.log("DEBUG [checkSession] Running initial session check...");
       try {
         const currentUser = await getCurrentUser();
+        console.log("DEBUG [checkSession] Finished checking session. User:", currentUser?.id || "None");
         if (active) {
           setUser(currentUser);
         }
       } catch (err) {
-        console.error("Error verifying authentication state:", err);
+        console.error("DEBUG [checkSession] Error verifying authentication state:", err);
       } finally {
         if (active) {
           setLoading(false);
@@ -49,7 +51,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Subscribe to changes
     if (isUsingMock) {
+      console.log("DEBUG [AuthGuard] Initializing with Local Mock Mode");
       const unsub = mockEmitter.subscribe("auth_change", (newUser: Profile | null) => {
+        console.log("DEBUG [AuthGuard] auth_change event (MOCK):", newUser?.id || "None");
         setUser(newUser);
       });
       return () => {
@@ -57,13 +61,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         unsub();
       };
     } else if (supabase) {
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      console.log("DEBUG [AuthGuard] Initializing with Real Supabase Mode");
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        console.log("DEBUG [onAuthStateChange] Event:", event, "User ID in session:", session?.user?.id || "None");
         if (session?.user) {
+          console.log("DEBUG [onAuthStateChange] Session user detected. Loading profile...");
           const u = await getCurrentUser();
+          console.log("DEBUG [onAuthStateChange] Profile loaded:", u?.id || "None");
           setUser(u);
         } else {
+          console.log("DEBUG [onAuthStateChange] No session user. Setting user to null.");
           setUser(null);
         }
+        console.log("DEBUG [onAuthStateChange] Setting auth loading state to false.");
         setLoading(false);
       });
 
@@ -79,16 +89,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signInUser = async (email: string, password: string) => {
+    console.log("DEBUG [signInUser] Starting login for email:", email);
     setLoading(true);
     try {
       if (isUsingMock) {
+        console.log("DEBUG [signInUser] Logging in with Mock Mode...");
         const u = await mockLogin(email);
         setUser(u);
       } else if (supabase) {
+        console.log("DEBUG [signInUser] Sending auth.signInWithPassword to Supabase...");
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        if (error) {
+          console.error("DEBUG [signInUser] Supabase signInWithPassword returned error:", error);
+          throw error;
+        }
+        console.log("DEBUG [signInUser] Supabase signInWithPassword completed successfully!");
       }
     } finally {
+      console.log("DEBUG [signInUser] Setting loading state to false in finally block.");
       setLoading(false);
     }
   };
