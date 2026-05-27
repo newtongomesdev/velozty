@@ -6,6 +6,8 @@ import { I18nProvider } from "./components/i18n/I18nProvider";
 
 // Route View screens
 import LandingPage from "./routes/LandingPage";
+import Terms from "./routes/Terms";
+import Privacy from "./routes/Privacy";
 import Login from "./routes/Login";
 import Dashboard from "./routes/Dashboard";
 import CreateRace from "./routes/CreateRace";
@@ -62,6 +64,8 @@ export const App: React.FC = () => {
                 
                 {/* PUBLIC LANDING PAGE */}
                 <Route path="/" element={<LandingPage />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/privacy" element={<Privacy />} />
                 
                 {/* APPLICATION ROUTE BOUNDARY */}
                 <Route path="/app">

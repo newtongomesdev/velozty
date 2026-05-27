@@ -226,7 +226,16 @@ body.light-theme div.bg-darkbg\/80 .text-white:not(button):not(a):not(.bg-hyperp
 body.light-theme div.bg-darkbg\/95 .text-white:not(button):not(a):not(.bg-hyperpink):not(.bg-volt):not(.text-volt),
 body.light-theme div.flex-1 .text-white:not(button):not(a):not(.bg-hyperpink):not(.bg-volt):not(.text-volt),
 body.light-theme p.text-white,
-body.light-theme span.text-white:not(button):not(a):not(.bg-hyperpink):not(.bg-volt):not(.text-volt):not(.px-2) {
+body.light-theme .text-white:not(button):not(a):not(.bg-hyperpink):not(.bg-volt):not(.text-volt):not(.px-2) {
+  color: #0f0f15 !important;
+}
+
+body.light-theme h1,
+body.light-theme h2,
+body.light-theme h3,
+body.light-theme h4,
+body.light-theme h5,
+body.light-theme h6 {
   color: #0f0f15 !important;
 }
 
@@ -332,4 +341,37 @@ body.light-theme .bg-\[\#101018\]\/95 {
 body.light-theme .text-white\/80,
 body.light-theme .text-white\/90 {
   color: #222230 !important;
+}
+
+/* Custom Language Dropdown Selector Styles */
+.lang-select {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  padding-right: 1.25rem !important;
+  font-family: inherit;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+body.light-theme .lang-select {
+  color: #0f0f15 !important;
+}
+
+.lang-select option {
+  background-color: #0b0b10 !important;
+  color: #ffffff !important;
+}
+
+body.light-theme .lang-select option {
+  background-color: #ffffff !important;
+  color: #0f0f15 !important;
 }

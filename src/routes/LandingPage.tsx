@@ -13,6 +13,7 @@ import {
   Users, 
   ShieldCheck, 
   ChevronDown, 
+  Globe,
   Activity, 
   Heart, 
   Wifi, 
@@ -351,20 +352,18 @@ export const LandingPage: React.FC = () => {
           </button>
 
           {/* Locale Picker */}
-          <div className="flex items-center gap-1 bg-white/5 border border-white/10 p-1 rounded-xl">
-            {(["pt", "en", "es"] as const).map(lang => (
-              <button
-                key={lang}
-                onClick={() => setLocale(lang)}
-                className={`px-2 py-1 text-[9px] font-black uppercase rounded-lg transition-all focus:outline-none ${
-                  locale === lang 
-                    ? "bg-volt text-black shadow-glow-volt" 
-                    : "text-mutedgray hover:text-white hover:bg-white/5"
-                }`}
-              >
-                {lang}
-              </button>
-            ))}
+          <div className="relative flex items-center bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 focus-within:border-volt/30 transition-all hover:bg-white/8">
+            <Globe className="h-3.5 w-3.5 text-mutedgray mr-1.5 pointer-events-none" />
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as any)}
+              className="lang-select focus:ring-0 focus:outline-none"
+            >
+              <option value="pt">PT</option>
+              <option value="en">EN</option>
+              <option value="es">ES</option>
+            </select>
+            <ChevronDown className="h-3 w-3 text-mutedgray absolute right-2.5 pointer-events-none" />
           </div>
 
           {/* Login Action CTA */}
@@ -924,9 +923,19 @@ export const LandingPage: React.FC = () => {
           <div className={`flex gap-4 text-[9px] font-black uppercase tracking-wider ${
             theme === "light" ? "text-slate-600" : "text-mutedgray/60"
           }`}>
-            <span className="hover:text-volt cursor-pointer transition-colors">{t.footerPrivacy}</span>
+            <span 
+              onClick={() => navigate("/privacy")}
+              className="hover:text-volt cursor-pointer transition-colors"
+            >
+              {t.footerPrivacy}
+            </span>
             <span>•</span>
-            <span className="hover:text-volt cursor-pointer transition-colors">{t.footerTerms}</span>
+            <span 
+              onClick={() => navigate("/terms")}
+              className="hover:text-volt cursor-pointer transition-colors"
+            >
+              {t.footerTerms}
+            </span>
           </div>
         </div>
       </footer>
