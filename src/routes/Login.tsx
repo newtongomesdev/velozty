@@ -159,6 +159,7 @@ export const Login: React.FC = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="piloto@velozty.com"
               required
+              autoComplete="email"
               className="px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt tracking-wide placeholder-white/20 transition-all font-mono"
             />
           </div>
@@ -173,6 +174,7 @@ export const Login: React.FC = () => {
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Ex: BoltVolt_99"
                 required
+                autoComplete="username"
                 className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-hyperpink focus:ring-1 focus:ring-hyperpink tracking-wide placeholder-white/20 transition-all"
               />
             </div>
@@ -187,6 +189,7 @@ export const Login: React.FC = () => {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
+              autoComplete={isSignUp ? "new-password" : "current-password"}
               className="px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt tracking-wide placeholder-white/20 transition-all font-mono"
             />
           </div>
@@ -200,6 +203,7 @@ export const Login: React.FC = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 required
+                autoComplete="new-password"
                 className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-hyperpink focus:ring-1 focus:ring-hyperpink tracking-wide placeholder-white/20 transition-all font-mono"
               />
             </div>
