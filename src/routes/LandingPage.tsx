@@ -894,7 +894,11 @@ export const LandingPage: React.FC = () => {
       </section>
 
       {/* 6. CLEAN PREMIUM FOOTER */}
-      <footer className="relative z-10 border-t border-white/5 bg-[#030305] py-12">
+      <footer className={`relative z-10 border-t py-12 transition-all duration-300 ${
+        theme === "light" 
+          ? "bg-white border-slate-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.02)]" 
+          : "bg-[#030305] border-white/5"
+      }`}>
         <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
           
           {/* Logo footer */}
@@ -902,18 +906,24 @@ export const LandingPage: React.FC = () => {
             <div className="bg-volt/10 border border-volt/20 p-1.5 rounded-xl">
               <Flame className="h-4.5 w-4.5 text-volt" />
             </div>
-            <span className="text-sm font-black tracking-tight text-white uppercase italic">
+            <span className={`text-sm font-black tracking-tight uppercase italic ${
+              theme === "light" ? "text-slate-900" : "text-white"
+            }`}>
               VELO<span className="text-volt">ZTY</span>
             </span>
           </div>
 
           {/* Copy statement */}
-          <p className="text-[10px] font-black uppercase tracking-widest text-mutedgray/50 text-center md:text-left">
+          <p className={`text-[10px] font-black uppercase tracking-widest text-center md:text-left ${
+            theme === "light" ? "text-slate-500/80" : "text-mutedgray/50"
+          }`}>
             &copy; {new Date().getFullYear()} {t.footerText}
           </p>
 
           {/* Footer absolute text links */}
-          <div className="flex gap-4 text-[9px] font-black uppercase tracking-wider text-mutedgray/60">
+          <div className={`flex gap-4 text-[9px] font-black uppercase tracking-wider ${
+            theme === "light" ? "text-slate-600" : "text-mutedgray/60"
+          }`}>
             <span className="hover:text-volt cursor-pointer transition-colors">{t.footerPrivacy}</span>
             <span>•</span>
             <span className="hover:text-volt cursor-pointer transition-colors">{t.footerTerms}</span>
