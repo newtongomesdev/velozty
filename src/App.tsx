@@ -19,6 +19,7 @@ import WatchRace from "./routes/WatchRace";
 import HallOfFame from "./routes/HallOfFame";
 import Social from "./routes/Social";
 import PublicProfile from "./routes/PublicProfile";
+import StravaCallback from "./routes/StravaCallback";
 
 // ---------- Theme Context ----------
 interface ThemeContextValue {
@@ -27,7 +28,7 @@ interface ThemeContextValue {
 }
 
 export const ThemeContext = createContext<ThemeContextValue>({
-  theme: "dark",
+  theme: "light",
   toggleTheme: () => {},
 });
 
@@ -35,9 +36,12 @@ export const useTheme = () => useContext(ThemeContext);
 // -----------------------------------
 
 export const App: React.FC = () => {
+  const themeStorageKey = "velocity_theme";
+  const themePreferenceKey = "velozty_theme_preference_set";
   const [theme, setTheme] = useState<"dark" | "light">(() => {
-    const saved = localStorage.getItem("velocity_theme");
-    return saved === "light" ? "light" : "dark";
+    const saved = localStorage.getItem(themeStorageKey);
+    const hasExplicitPreference = localStorage.getItem(themePreferenceKey) === "true";
+    return hasExplicitPreference && saved === "dark" ? "dark" : "light";
   });
 
   useEffect(() => {
@@ -46,10 +50,11 @@ export const App: React.FC = () => {
     } else {
       document.body.classList.remove("light-theme");
     }
-    localStorage.setItem("velocity_theme", theme);
+    localStorage.setItem(themeStorageKey, theme);
   }, [theme]);
 
   const toggleTheme = () => {
+    localStorage.setItem(themePreferenceKey, "true");
     setTheme(prev => (prev === "dark" ? "light" : "dark"));
   };
 
@@ -119,12 +124,28 @@ export const App: React.FC = () => {
                       </AuthGuard>
                     }
                   />
+                  <Route
+                    path="strava/callback"
+                    element={
+                      <AuthGuard>
+                        <StravaCallback />
+                      </AuthGuard>
+                    }
+                  />
                   <Route path="watch/:id" element={<WatchRace />} />
                   <Route
                     path="join/:code"
                     element={
                       <AuthGuard>
                         <JoinRace />
+                      </AuthGuard>
+                    }
+                  />
+                  <Route
+                    path="races/:id/edit"
+                    element={
+                      <AuthGuard>
+                        <CreateRace />
                       </AuthGuard>
                     }
                   />

@@ -27,13 +27,13 @@ import {
 // Local translations to avoid bloating the central i18n.ts file
 const translations = {
   pt: {
-    heroBadge: "O jeito mais fácil de chamar a turma",
+    heroBadge: "Velozty: Who is fastest?",
     navFeatures: "Recursos",
     navPricing: "Planos",
-    heroTitlePre: "JUNTE OS AMIGOS",
-    heroTitleVolt: "E CRIE",
-    heroTitlePost: "UMA CORRIDA",
-    heroSubtitle: "O Velozty ajuda você a combinar uma corrida, caminhada ou pedal com os amigos em poucos segundos. Crie o convite, compartilhe o link e acompanhe todo mundo no mapa enquanto a brincadeira acontece.",
+    heroTitlePre: "VELOZTY:",
+    heroTitleVolt: "WHO IS",
+    heroTitlePost: "FASTEST?",
+    heroSubtitle: "Chame seus amigos para correr, caminhar ou pedalar e descubra quem chega primeiro. Crie o convite, compartilhe o link e acompanhe todo mundo no mapa enquanto a disputa acontece.",
     ctaStart: "Criar minha conta",
     ctaExplore: "Ver corridas abertas",
     activeRaces: "Grupos Ativos",
@@ -98,13 +98,13 @@ const translations = {
     footerTerms: "Termos de Uso",
   },
   en: {
-    heroBadge: "The easy way to gather your friends",
+    heroBadge: "Velozty: Who is fastest?",
     navFeatures: "Features",
     navPricing: "Pricing",
-    heroTitlePre: "BRING FRIENDS",
-    heroTitleVolt: "TOGETHER",
-    heroTitlePost: "FOR A RACE",
-    heroSubtitle: "Velozty helps you set up a run, walk, or ride with friends in seconds. Create the invite, share the link, and follow everyone on the map while the fun is happening.",
+    heroTitlePre: "VELOZTY:",
+    heroTitleVolt: "WHO IS",
+    heroTitlePost: "FASTEST?",
+    heroSubtitle: "Invite your friends to run, walk, or ride and find out who gets there first. Create the invite, share the link, and follow everyone on the map while the challenge happens.",
     ctaStart: "Create my account",
     ctaExplore: "See open races",
     activeRaces: "Active Groups",
@@ -169,13 +169,13 @@ const translations = {
     footerTerms: "Terms of Use",
   },
   es: {
-    heroBadge: "La forma fácil de juntar a tus amigos",
+    heroBadge: "Velozty: Who is fastest?",
     navFeatures: "Recursos",
     navPricing: "Planes",
-    heroTitlePre: "JUNTA A TUS AMIGOS",
-    heroTitleVolt: "Y CREA",
-    heroTitlePost: "UNA CARRERA",
-    heroSubtitle: "Velozty te ayuda a organizar una carrera, caminata o rodada con amigos en segundos. Crea la invitación, comparte el enlace y sigue a todos en el mapa mientras ocurre la diversión.",
+    heroTitlePre: "VELOZTY:",
+    heroTitleVolt: "WHO IS",
+    heroTitlePost: "FASTEST?",
+    heroSubtitle: "Invita a tus amigos a correr, caminar o pedalear y descubre quién llega primero. Crea la invitación, comparte el enlace y sigue a todos en el mapa mientras ocurre el desafío.",
     ctaStart: "Crear mi cuenta",
     ctaExplore: "Ver carreras abiertas",
     activeRaces: "Grupos Activos",
@@ -394,10 +394,10 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Giant Title */}
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase italic text-white leading-none">
-            {t.heroTitlePre} <br className="hidden sm:block" />
-            <span className="text-volt drop-shadow-[0_0_15px_rgba(198,255,0,0.3)]">{t.heroTitleVolt}</span> <br />
-            <span className={`text-transparent bg-clip-text ${
+          <h1 className="overflow-visible pr-4 pb-2 text-4xl sm:text-6xl font-black tracking-tighter uppercase italic text-white leading-[1.08]">
+            <span className="block pr-3">{t.heroTitlePre}</span>
+            <span className="block pr-3 text-volt drop-shadow-[0_0_15px_rgba(198,255,0,0.3)]">{t.heroTitleVolt}</span>
+            <span className={`block pr-4 text-transparent bg-clip-text box-decoration-clone ${
               theme === "light" 
                 ? "bg-gradient-to-r from-slate-900 via-slate-900 to-slate-900/60" 
                 : "bg-gradient-to-r from-white via-white to-white/40"

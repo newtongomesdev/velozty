@@ -14,7 +14,7 @@ export default defineConfig({
       manifest: {
         name: 'Velozty',
         short_name: 'Velozty',
-        description: 'Crie corridas. Desafie amigos. Chegue primeiro.',
+        description: 'Velozty: Who is fastest?',
         theme_color: '#050508',
         background_color: '#050508',
         display: 'standalone',

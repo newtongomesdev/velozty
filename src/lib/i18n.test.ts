@@ -16,7 +16,7 @@ describe("detectLocale", () => {
 
 describe("getTranslation", () => {
   it("usa a tradução do idioma detectado", () => {
-    expect(getTranslation("en", "app.slogan")).toBe("Create races. Challenge friends. Finish first.");
+    expect(getTranslation("en", "app.slogan")).toBe("Velozty: Who is fastest?");
     expect(getTranslation("es", "common.back")).toBe("Volver");
   });
 

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentUser, mockLogin, mockLogout, isUsingMock, supabase, mockEmitter } from "../../lib/supabase";
+import { getCurrentUser, isUsernameAvailable, mockLogin, mockLogout, isUsingMock, suggestUsernames, supabase, mockEmitter } from "../../lib/supabase";
 import type { Profile } from "../../lib/supabase";
 import { useI18n } from "../i18n/I18nProvider";
 
@@ -8,7 +8,7 @@ interface AuthContextType {
   user: Profile | null;
   loading: boolean;
   signInUser: (email: string, password: string) => Promise<void>;
-  signUpUser: (email: string, password: string, displayName: string) => Promise<{ needsEmailConfirmation: boolean }>;
+  signUpUser: (email: string, password: string, displayName: string, username: string) => Promise<{ needsEmailConfirmation: boolean }>;
   loginWithProvider: (provider: "google" | "apple") => Promise<void>;
   logoutUser: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
@@ -25,6 +25,7 @@ export const useAuth = () => {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { t } = useI18n();
 
   // Initialize and subscribe
   useEffect(() => {
@@ -97,11 +98,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUpUser = async (email: string, password: string, displayName: string) => {
+  const signUpUser = async (email: string, password: string, displayName: string, username: string) => {
     setLoading(true);
     try {
+      const trimmedUsername = username.trim();
+      const available = await isUsernameAvailable(trimmedUsername);
+      if (!available) {
+        const suggestions = await suggestUsernames(trimmedUsername);
+        const suggestionText = suggestions.length ? ` ${t("login.usernameSuggestions")}: ${suggestions.join(", ")}` : "";
+        throw new Error(`${t("login.usernameTaken")}${suggestionText}`);
+      }
+
       if (isUsingMock) {
-        const u = await mockLogin(email, displayName);
+        const u = await mockLogin(email, displayName, trimmedUsername);
         setUser(u);
         return { needsEmailConfirmation: false };
       } else if (supabase) {
@@ -111,7 +120,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           password,
           options: {
             emailRedirectTo: redirectTo,
-            data: { display_name: displayName.trim() || email.split("@")[0] }
+            data: {
+              display_name: displayName.trim() || email.split("@")[0],
+              username: trimmedUsername,
+            }
           }
         });
         if (error) throw error;

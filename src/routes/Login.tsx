@@ -5,6 +5,7 @@ import { useI18n } from "../components/i18n/I18nProvider";
 import { useToast } from "../components/ui/Toast";
 import { Button } from "../components/ui/Button";
 import { Card, CardTitle } from "../components/ui/Card";
+import { isUsernameAvailable, isValidUsernameFormat, suggestUsernames } from "../lib/supabase";
 import { ShieldCheck, UserPlus, Flame, Cpu } from "lucide-react";
 
 const LGPD_CONSENT_KEY = "velozty_lgpd_consent";
@@ -15,9 +16,13 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [username, setUsername] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [usernameMessage, setUsernameMessage] = useState("");
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
   
   const { user, signInUser, signUpUser, loginWithProvider, requestPasswordReset } = useAuth();
   const { showToast } = useToast();
@@ -30,6 +35,44 @@ export const Login: React.FC = () => {
       navigate("/app/dashboard");
     }
   }, [user, navigate]);
+
+  const validateUsername = async (rawValue: string) => {
+    const candidate = rawValue.trim();
+
+    if (!candidate) {
+      setUsernameStatus("idle");
+      setUsernameMessage("");
+      setUsernameSuggestions([]);
+      return { ok: false, message: "" };
+    }
+
+    if (!isValidUsernameFormat(candidate)) {
+      const message = t("login.usernameInvalid");
+      setUsernameStatus("taken");
+      setUsernameMessage(message);
+      setUsernameSuggestions([]);
+      return { ok: false, message };
+    }
+
+    setUsernameStatus("checking");
+    setUsernameMessage("");
+
+    const available = await isUsernameAvailable(candidate);
+    if (available) {
+      const message = t("login.usernameAvailable");
+      setUsernameStatus("available");
+      setUsernameMessage(message);
+      setUsernameSuggestions([]);
+      return { ok: true, message };
+    }
+
+    const suggestions = await suggestUsernames(candidate);
+    const message = t("login.usernameTaken");
+    setUsernameStatus("taken");
+    setUsernameMessage(message);
+    setUsernameSuggestions(suggestions);
+    return { ok: false, message };
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +91,24 @@ export const Login: React.FC = () => {
       return;
     }
 
+    if (isSignUp && !displayName.trim()) {
+      showToast(t("login.displayNameRequired"), "warning");
+      return;
+    }
+
+    if (isSignUp && !username.trim()) {
+      showToast(t("login.usernameRequired"), "warning");
+      return;
+    }
+
+    if (isSignUp) {
+      const usernameCheck = await validateUsername(username);
+      if (!usernameCheck.ok) {
+        showToast(usernameCheck.message || t("login.usernameTaken"), "warning");
+        return;
+      }
+    }
+
     if (isSignUp && !acceptedTerms) {
       showToast(t("login.termsRequired"), "warning");
       return;
@@ -56,7 +117,7 @@ export const Login: React.FC = () => {
     setAuthLoading(true);
     try {
       if (isSignUp) {
-        const result = await signUpUser(email, password, displayName);
+        const result = await signUpUser(email, password, displayName, username);
         const acceptedAt = new Date().toISOString();
         localStorage.setItem(LGPD_CONSENT_KEY, "accepted");
         localStorage.setItem(TERMS_CONSENT_KEY, JSON.stringify({
@@ -172,11 +233,62 @@ export const Login: React.FC = () => {
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Ex: BoltVolt_99"
+                placeholder={t("login.displayNamePlaceholder")}
                 required
-                autoComplete="username"
+                autoComplete="name"
                 className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-hyperpink focus:ring-1 focus:ring-hyperpink tracking-wide placeholder-white/20 transition-all"
               />
+            </div>
+          )}
+
+          {isSignUp && (
+            <div className="flex w-full flex-col gap-1.5 animate-slide-up">
+              <label className="text-[10px] font-bold text-mutedgray uppercase tracking-wider">{t("login.username")}</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setUsernameStatus("idle");
+                  setUsernameMessage("");
+                  setUsernameSuggestions([]);
+                }}
+                onBlur={() => {
+                  void validateUsername(username);
+                }}
+                placeholder={t("login.usernamePlaceholder")}
+                required
+                autoComplete="username"
+                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt tracking-wide placeholder-white/20 transition-all font-mono"
+              />
+              <p className={`text-[10px] font-semibold ${
+                usernameStatus === "available"
+                  ? "text-volt"
+                  : usernameStatus === "taken"
+                    ? "text-hyperpink"
+                    : "text-mutedgray"
+              }`}>
+                {usernameStatus === "checking" ? t("login.usernameChecking") : usernameMessage || t("login.usernameHint")}
+              </p>
+              {usernameSuggestions.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {usernameSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={() => {
+                        setUsername(suggestion);
+                        setUsernameStatus("available");
+                        setUsernameMessage(t("login.usernameAvailable"));
+                        setUsernameSuggestions([]);
+                      }}
+                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white hover:border-volt/50 hover:text-volt transition-colors"
+                    >
+                      @{suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

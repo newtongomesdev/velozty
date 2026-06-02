@@ -40,6 +40,7 @@ export interface Profile {
   display_name: string;
   avatar_url: string;
   username: string;
+  username_updated_at?: string | null;
   email?: string;
   country?: string;
   state?: string;
@@ -118,12 +119,15 @@ export interface RaceAward {
   created_at: string;
 }
 
+const USERNAME_REGEX = /^[A-Za-z0-9_.-]{3,24}$/;
+
 export interface SocialPost {
   id: string;
   user_id: string;
   display_name: string;
   avatar_url?: string | null;
   content: string;
+  image_url?: string | null;
   created_at: string;
   likes_count?: number;
   comments_count?: number;
@@ -167,6 +171,36 @@ export interface SocialCommentLike {
   created_at: string;
 }
 
+export interface ProfilePhoto {
+  id: string;
+  user_id: string;
+  image_url: string;
+  caption?: string | null;
+  created_at: string;
+}
+
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  actor_user_id?: string | null;
+  type: "social_like" | "comment_like" | "message" | "upcoming_race" | "system";
+  title: string;
+  body?: string | null;
+  target_url?: string | null;
+  read_at?: string | null;
+  created_at: string;
+}
+
+export interface StravaConnection {
+  user_id: string;
+  athlete_id?: number | null;
+  athlete_name?: string | null;
+  scope?: string | null;
+  expires_at?: string | null;
+  connected_at: string;
+  updated_at: string;
+}
+
 function requireSocialUser(currentUser?: Profile | null): Profile | null {
   return currentUser ?? null;
 }
@@ -185,7 +219,9 @@ const STORAGE_KEYS = {
   SOCIAL_FOLLOWS: "velozty_mock_social_follows",
   SOCIAL_LIKES: "velozty_mock_social_likes",
   SOCIAL_COMMENTS: "velozty_mock_social_comments",
-  SOCIAL_COMMENT_LIKES: "velozty_mock_social_comment_likes"
+  SOCIAL_COMMENT_LIKES: "velozty_mock_social_comment_likes",
+  PROFILE_PHOTOS: "velozty_mock_profile_photos",
+  NOTIFICATIONS: "velozty_mock_notifications"
 };
 
 // Initial Mock Seed Data
@@ -286,7 +322,9 @@ export async function getCurrentUser(existingUser?: User): Promise<Profile | nul
   
   // Fallback virtual profile template in case we fail to query/create in the DB
   const fallbackDisplayName = user.user_metadata?.display_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Atleta";
-  const fallbackUsername = (user.user_metadata?.username || user.email?.split("@")[0] || `user_${user.id.substring(0, 8)}`).toLowerCase().replace(/[^a-z0-9_]/g, "");
+  const fallbackUsername = String(user.user_metadata?.username || user.email?.split("@")[0] || `user_${user.id.substring(0, 8)}`)
+    .trim()
+    .replace(/\s+/g, "");
   const virtualProfile: Profile = {
     id: user.id,
     display_name: fallbackDisplayName,
@@ -355,16 +393,72 @@ export async function getCurrentUser(existingUser?: User): Promise<Profile | nul
   return profile ? { ...profile, email: user.email } : virtualProfile;
 }
 
-export async function mockLogin(email: string, name?: string): Promise<Profile> {
+export function isValidUsernameFormat(username: string): boolean {
+  return USERNAME_REGEX.test(username.trim());
+}
+
+export async function isUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean> {
+  const candidate = username.trim();
+  if (!candidate) return false;
+
+  if (isUsingMock) {
+    const profiles = getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles);
+    return !profiles.some((profile) => (
+      profile.username.toLowerCase() === candidate.toLowerCase() &&
+      profile.id !== excludeUserId
+    ));
+  }
+
+  if (!supabase) return false;
+
+  let query = supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .ilike("username", candidate);
+
+  if (excludeUserId) {
+    query = query.neq("id", excludeUserId);
+  }
+
+  const { count, error } = await query;
+  if (error) throw error;
+  return (count || 0) === 0;
+}
+
+export async function suggestUsernames(username: string, excludeUserId?: string): Promise<string[]> {
+  const root = username
+    .trim()
+    .replace(/[^A-Za-z0-9_.-]/g, "")
+    .replace(/^[._-]+|[._-]+$/g, "")
+    .slice(0, 18) || "pilot";
+
+  const candidates = [
+    `${root}.app`,
+    `${root}_race`,
+    `${root}01`,
+    `${root}77`,
+    `${root}.br`,
+    `${root}_pro`,
+  ];
+
+  const uniqueCandidates = [...new Set(candidates)].slice(0, 6);
+  const availability = await Promise.all(
+    uniqueCandidates.map((candidate) => isUsernameAvailable(candidate, excludeUserId))
+  );
+
+  return uniqueCandidates.filter((_, index) => availability[index]).slice(0, 3);
+}
+
+export async function mockLogin(email: string, name?: string, username?: string): Promise<Profile> {
   const profiles = getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles);
-  let profile = profiles.find(p => p.display_name.toLowerCase() === (name || email).split("@")[0].toLowerCase());
+  let profile = profiles.find((item) => item.email?.toLowerCase() === email.toLowerCase());
   
   if (!profile) {
     profile = {
       id: `user-${Date.now()}`,
       display_name: name || email.split("@")[0] || "CyberRacer",
       avatar_url: "",
-      username: email.split("@")[0] || "cyberracer",
+      username: username?.trim() || email.split("@")[0] || "cyberracer",
       email: email,
       country: "Brasil",
       state: "SP",
@@ -403,9 +497,27 @@ export async function updateUserProfile(input: {
   website?: string;
   avatar_url?: string;
   is_public?: boolean;
+  username?: string;
 }): Promise<Profile> {
   const user = await getCurrentUser();
   if (!user) throw new Error("Não autenticado");
+  const requestedUsername = input.username?.trim();
+  const usernameChanged = Boolean(requestedUsername && requestedUsername.toLowerCase() !== user.username.toLowerCase());
+  const usernameUpdatedAt = user.username_updated_at ? new Date(user.username_updated_at) : null;
+  const canChangeUsername = !usernameUpdatedAt || Date.now() - usernameUpdatedAt.getTime() >= 7 * 24 * 60 * 60 * 1000;
+
+  if (usernameChanged) {
+    if (!isValidUsernameFormat(requestedUsername!)) {
+      throw new Error("Nome de usuário inválido.");
+    }
+    if (!canChangeUsername) {
+      throw new Error("Você só pode alterar o nome de usuário uma vez a cada 7 dias.");
+    }
+    const available = await isUsernameAvailable(requestedUsername!, user.id);
+    if (!available) {
+      throw new Error("Esse nome de usuário já existe.");
+    }
+  }
   
   if (isUsingMock) {
     const profiles = getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles);
@@ -422,6 +534,8 @@ export async function updateUserProfile(input: {
       website: input.website ?? user.website ?? "",
       avatar_url: input.avatar_url ?? user.avatar_url ?? "",
       is_public: input.is_public ?? user.is_public ?? true,
+      username: usernameChanged ? requestedUsername! : user.username,
+      username_updated_at: usernameChanged ? new Date().toISOString() : user.username_updated_at ?? null,
     };
     
     if (idx !== -1) {
@@ -449,6 +563,8 @@ export async function updateUserProfile(input: {
         website: input.website,
         avatar_url: input.avatar_url,
         is_public: input.is_public,
+        username: usernameChanged ? requestedUsername : user.username,
+        username_updated_at: usernameChanged ? new Date().toISOString() : user.username_updated_at ?? null,
         created_at: user.created_at || new Date().toISOString()
       })
       .select()
@@ -456,6 +572,178 @@ export async function updateUserProfile(input: {
     if (error) throw error;
     return data;
   }
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("Failed to read file"));
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function uploadMediaImage(file: File, folder: "avatars" | "profile" | "social"): Promise<string> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Não autenticado");
+  if (!file.type.startsWith("image/")) throw new Error("Arquivo inválido");
+  if (file.size > 5 * 1024 * 1024) throw new Error("Imagem muito grande");
+
+  if (isUsingMock) {
+    return await fileToDataUrl(file);
+  }
+
+  if (!supabase) throw new Error("Supabase não configurado");
+
+  const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `${user.id}/${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${extension}`;
+  const { error } = await supabase.storage
+    .from("velozty-media")
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type,
+    });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage.from("velozty-media").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function fetchProfilePhotos(profileId: string): Promise<ProfilePhoto[]> {
+  if (isUsingMock) {
+    return getStored<ProfilePhoto[]>(STORAGE_KEYS.PROFILE_PHOTOS, [])
+      .filter(photo => photo.user_id === profileId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("profile_photos")
+    .select("*")
+    .eq("user_id", profileId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data || []) as ProfilePhoto[];
+}
+
+export async function createProfilePhoto(file: File, caption = ""): Promise<ProfilePhoto> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Não autenticado");
+  const imageUrl = await uploadMediaImage(file, "profile");
+
+  if (isUsingMock) {
+    const photos = getStored<ProfilePhoto[]>(STORAGE_KEYS.PROFILE_PHOTOS, []);
+    const photo: ProfilePhoto = {
+      id: `profile-photo-${Date.now()}`,
+      user_id: user.id,
+      image_url: imageUrl,
+      caption: caption.trim() || null,
+      created_at: new Date().toISOString(),
+    };
+    photos.unshift(photo);
+    setStored(STORAGE_KEYS.PROFILE_PHOTOS, photos);
+    return photo;
+  }
+
+  if (!supabase) throw new Error("Supabase não configurado");
+  const { data, error } = await supabase
+    .from("profile_photos")
+    .insert([{ user_id: user.id, image_url: imageUrl, caption: caption.trim() || null }])
+    .select()
+    .single();
+  if (error) throw error;
+  return data as ProfilePhoto;
+}
+
+export async function fetchNotifications(): Promise<AppNotification[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  if (isUsingMock) {
+    return getStored<AppNotification[]>(STORAGE_KEYS.NOTIFICATIONS, [])
+      .filter(notification => notification.user_id === user.id)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("notifications")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  if (error) throw error;
+  return (data || []) as AppNotification[];
+}
+
+export async function createNotification(input: Omit<AppNotification, "id" | "created_at">): Promise<void> {
+  if (input.user_id === input.actor_user_id) return;
+
+  if (isUsingMock) {
+    const notifications = getStored<AppNotification[]>(STORAGE_KEYS.NOTIFICATIONS, []);
+    notifications.unshift({
+      ...input,
+      id: `notification-${Date.now()}`,
+      created_at: new Date().toISOString(),
+    });
+    setStored(STORAGE_KEYS.NOTIFICATIONS, notifications);
+    return;
+  }
+
+  if (!supabase) return;
+  await supabase.from("notifications").insert([input]);
+}
+
+export async function markNotificationsRead(notificationIds: string[]): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user || notificationIds.length === 0) return;
+  const readAt = new Date().toISOString();
+
+  if (isUsingMock) {
+    const notifications = getStored<AppNotification[]>(STORAGE_KEYS.NOTIFICATIONS, []);
+    setStored(STORAGE_KEYS.NOTIFICATIONS, notifications.map(notification => (
+      notification.user_id === user.id && notificationIds.includes(notification.id)
+        ? { ...notification, read_at: readAt }
+        : notification
+    )));
+    return;
+  }
+
+  if (!supabase) return;
+  await supabase
+    .from("notifications")
+    .update({ read_at: readAt })
+    .eq("user_id", user.id)
+    .in("id", notificationIds);
+}
+
+export async function fetchStravaConnection(): Promise<StravaConnection | null> {
+  const user = await getCurrentUser();
+  if (!user || isUsingMock || !supabase) return null;
+
+  const { data, error } = await supabase
+    .from("strava_connections")
+    .select("user_id, athlete_id, athlete_name, scope, expires_at, connected_at, updated_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (error) throw error;
+  return data as StravaConnection | null;
+}
+
+export function getStravaAuthorizationUrl(): string | null {
+  const clientId = import.meta.env.NEXT_PUBLIC_STRAVA_CLIENT_ID || import.meta.env.VITE_STRAVA_CLIENT_ID || "";
+  if (!clientId) return null;
+  const redirectUri = `${window.location.origin}/app/strava/callback`;
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: redirectUri,
+    response_type: "code",
+    approval_prompt: "auto",
+    scope: "read,activity:read,activity:write",
+  });
+  return `https://www.strava.com/oauth/authorize?${params.toString()}`;
 }
 
 export async function exportMyData(): Promise<Record<string, unknown>> {
@@ -660,6 +948,118 @@ export async function createRace(input: {
   if (partError) throw new Error(partError.message);
 
   return newRace as Race;
+}
+
+export async function updateRace(raceId: string, input: {
+  name: string;
+  modality: "running" | "bike" | "other";
+  mode: "live" | "time_trial";
+  start_lat: number;
+  start_lng: number;
+  finish_lat: number;
+  finish_lng: number;
+  finish_radius_m: number;
+  is_public?: boolean;
+  allow_spectators?: boolean;
+  city?: string | null;
+  state?: string | null;
+  neighborhood?: string | null;
+  start_address?: string | null;
+  finish_address?: string | null;
+  address?: string | null;
+  location_notes?: string | null;
+  scheduled_at?: string | null;
+  route_coords?: { lat: number; lng: number }[] | null;
+}): Promise<Race> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized user");
+  if (!input.name.trim()) throw new Error("Race name is required");
+  if (input.start_lat === 0 && input.start_lng === 0) throw new Error("Start coordinate is invalid");
+
+  const updates = {
+    name: input.name,
+    modality: input.modality,
+    mode: input.mode,
+    start_lat: input.start_lat,
+    start_lng: input.start_lng,
+    finish_lat: input.finish_lat,
+    finish_lng: input.finish_lng,
+    finish_radius_m: input.finish_radius_m,
+    is_public: input.is_public || false,
+    allow_spectators: input.allow_spectators ?? true,
+    city: input.city || null,
+    state: input.state || null,
+    neighborhood: input.neighborhood || null,
+    start_address: input.start_address || input.address || null,
+    finish_address: input.finish_address || null,
+    address: input.address || null,
+    location_notes: input.location_notes || null,
+    scheduled_at: input.scheduled_at || null,
+    route_coords: input.route_coords || null
+  };
+
+  if (isUsingMock) {
+    const races = getStored<Race[]>(STORAGE_KEYS.RACES, []);
+    const raceIdx = races.findIndex((race) => race.id === raceId);
+    if (raceIdx === -1) throw new Error("Race not found");
+    if (races[raceIdx].host_user_id !== user.id) throw new Error("Only the race host can edit this race");
+    if (races[raceIdx].status !== "lobby") throw new Error("Only lobby races can be edited");
+
+    const updatedRace = { ...races[raceIdx], ...updates };
+    races[raceIdx] = updatedRace;
+    setStored(STORAGE_KEYS.RACES, races);
+    mockEmitter.emit(`race_status_changed_${raceId}`, updatedRace);
+    return updatedRace;
+  }
+
+  if (!supabase) throw new Error("Supabase client is offline");
+
+  const { data: updatedRace, error } = await supabase
+    .from("races")
+    .update(updates)
+    .eq("id", raceId)
+    .eq("host_user_id", user.id)
+    .eq("status", "lobby")
+    .select()
+    .single();
+
+  if (error || !updatedRace) throw new Error(error?.message || "Failed to update race");
+  return updatedRace as Race;
+}
+
+export async function cancelRace(raceId: string): Promise<Race> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized user");
+
+  if (isUsingMock) {
+    const races = getStored<Race[]>(STORAGE_KEYS.RACES, []);
+    const raceIdx = races.findIndex((race) => race.id === raceId);
+    if (raceIdx === -1) throw new Error("Race not found");
+    if (races[raceIdx].host_user_id !== user.id) throw new Error("Only the race host can cancel this race");
+    if (races[raceIdx].status === "finished" || races[raceIdx].status === "cancelled") {
+      throw new Error("This race can no longer be cancelled");
+    }
+
+    const updatedRace = { ...races[raceIdx], status: "cancelled" as const };
+    races[raceIdx] = updatedRace;
+    setStored(STORAGE_KEYS.RACES, races);
+    mockEmitter.emit(`race_status_changed_${raceId}`, { status: "cancelled" });
+    return updatedRace;
+  }
+
+  if (!supabase) throw new Error("Supabase client is offline");
+
+  const { data: updatedRace, error } = await supabase
+    .from("races")
+    .update({ status: "cancelled" })
+    .eq("id", raceId)
+    .eq("host_user_id", user.id)
+    .in("status", ["lobby", "active"])
+    .select()
+    .single();
+
+  if (error || !updatedRace) throw new Error(error?.message || "Failed to cancel race");
+  return updatedRace as Race;
 }
 
 // 2. JOIN RACE BY CODE
@@ -1718,11 +2118,11 @@ export async function fetchSocialFeed(currentUser?: Profile | null): Promise<Soc
   });
 }
 
-export async function createSocialPost(content: string, currentUser?: Profile | null): Promise<SocialPost> {
+export async function createSocialPost(content: string, currentUser?: Profile | null, imageUrl?: string | null): Promise<SocialPost> {
   const user = requireSocialUser(currentUser) ?? await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
   const trimmed = content.trim();
-  if (trimmed.length < 1) throw new Error("Post content is required");
+  if (trimmed.length < 1 && !imageUrl) throw new Error("Post content is required");
 
   if (isUsingMock) {
     const posts = getStored<SocialPost[]>(STORAGE_KEYS.SOCIAL_POSTS, defaultSocialPosts);
@@ -1732,6 +2132,7 @@ export async function createSocialPost(content: string, currentUser?: Profile | 
       display_name: user.display_name,
       avatar_url: user.avatar_url,
       content: trimmed,
+      image_url: imageUrl || null,
       created_at: new Date().toISOString(),
     };
     posts.unshift(post);
@@ -1742,7 +2143,7 @@ export async function createSocialPost(content: string, currentUser?: Profile | 
   if (!supabase) throw new Error("Supabase is offline");
   const { data, error } = await supabase
     .from("social_posts")
-    .insert([{ user_id: user.id, display_name: user.display_name, avatar_url: user.avatar_url, content: trimmed }])
+    .insert([{ user_id: user.id, display_name: user.display_name, avatar_url: user.avatar_url, content: trimmed, image_url: imageUrl || null }])
     .select()
     .single();
   if (error) throw error;
@@ -1760,6 +2161,20 @@ export async function toggleSocialLike(postId: string, currentUser?: Profile | n
       ? likes.filter(like => !(like.post_id === postId && like.user_id === user.id))
       : [...likes, { post_id: postId, user_id: user.id, created_at: new Date().toISOString() }];
     setStored(STORAGE_KEYS.SOCIAL_LIKES, updated);
+    if (!existing) {
+      const post = getStored<SocialPost[]>(STORAGE_KEYS.SOCIAL_POSTS, defaultSocialPosts).find(item => item.id === postId);
+      if (post?.user_id && post.user_id !== user.id) {
+        await createNotification({
+          user_id: post.user_id,
+          actor_user_id: user.id,
+          type: "social_like",
+          title: `${user.display_name} curtiu sua postagem`,
+          body: "Nova curtida na rede social.",
+          target_url: "/app/social",
+          read_at: null,
+        });
+      }
+    }
     return;
   }
 
@@ -1773,7 +2188,19 @@ export async function toggleSocialLike(postId: string, currentUser?: Profile | n
   if (existing) {
     await supabase.from("social_likes").delete().eq("post_id", postId).eq("user_id", user.id);
   } else {
+    const { data: post } = await supabase.from("social_posts").select("user_id, display_name").eq("id", postId).maybeSingle();
     await supabase.from("social_likes").insert([{ post_id: postId, user_id: user.id }]);
+    if (post?.user_id && post.user_id !== user.id) {
+      await createNotification({
+        user_id: post.user_id,
+        actor_user_id: user.id,
+        type: "social_like",
+        title: `${user.display_name} curtiu sua postagem`,
+        body: post.display_name ? "Nova curtida na rede social." : null,
+        target_url: "/app/social",
+        read_at: null,
+      });
+    }
   }
 }
 
@@ -1788,6 +2215,20 @@ export async function toggleSocialCommentLike(commentId: string, currentUser?: P
       ? likes.filter(like => !(like.comment_id === commentId && like.user_id === user.id))
       : [...likes, { comment_id: commentId, user_id: user.id, created_at: new Date().toISOString() }];
     setStored(STORAGE_KEYS.SOCIAL_COMMENT_LIKES, updated);
+    if (!existing) {
+      const comment = getStored<SocialComment[]>(STORAGE_KEYS.SOCIAL_COMMENTS, []).find(item => item.id === commentId);
+      if (comment?.user_id && comment.user_id !== user.id) {
+        await createNotification({
+          user_id: comment.user_id,
+          actor_user_id: user.id,
+          type: "comment_like",
+          title: `${user.display_name} curtiu seu comentário`,
+          body: "Nova curtida em um comentário seu.",
+          target_url: "/app/social",
+          read_at: null,
+        });
+      }
+    }
     return;
   }
 
@@ -1801,7 +2242,19 @@ export async function toggleSocialCommentLike(commentId: string, currentUser?: P
   if (existing) {
     await supabase.from("social_comment_likes").delete().eq("comment_id", commentId).eq("user_id", user.id);
   } else {
+    const { data: comment } = await supabase.from("social_comments").select("user_id, post_id").eq("id", commentId).maybeSingle();
     await supabase.from("social_comment_likes").insert([{ comment_id: commentId, user_id: user.id }]);
+    if (comment?.user_id && comment.user_id !== user.id) {
+      await createNotification({
+        user_id: comment.user_id,
+        actor_user_id: user.id,
+        type: "comment_like",
+        title: `${user.display_name} curtiu seu comentário`,
+        body: "Nova curtida em um comentário seu.",
+        target_url: "/app/social",
+        read_at: null,
+      });
+    }
   }
 }
 

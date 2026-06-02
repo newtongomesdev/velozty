@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { ArrowLeft, Globe, Link as LinkIcon, MapPin, MessageCircle, UserMinus, UserPlus } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Globe, ImagePlus, Link as LinkIcon, MapPin, MessageCircle, UserMinus, UserPlus } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -7,9 +7,12 @@ import { useToast } from "../components/ui/Toast";
 import { useI18n } from "../components/i18n/I18nProvider";
 import {
   fetchSocialProfile,
+  createProfilePhoto,
+  fetchProfilePhotos,
   followUser,
   getCurrentUser,
   unfollowUser,
+  type ProfilePhoto,
   type Profile,
   type SocialProfile,
 } from "../lib/supabase";
@@ -21,18 +24,23 @@ const PublicProfile: React.FC = () => {
   const { t } = useI18n();
   const [profile, setProfile] = useState<SocialProfile | null>(null);
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
+  const [photos, setPhotos] = useState<ProfilePhoto[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [loading, setLoading] = useState(true);
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
 
   const loadProfile = async () => {
     if (!id) return;
     setLoading(true);
     try {
-      const [profileData, userData] = await Promise.all([
+      const [profileData, userData, photoData] = await Promise.all([
         fetchSocialProfile(id),
         getCurrentUser(),
+        fetchProfilePhotos(id),
       ]);
       setProfile(profileData);
       setCurrentUser(userData);
+      setPhotos(photoData);
     } catch (err) {
       showToast(t("social.loadError"), "error");
     } finally {
@@ -60,6 +68,30 @@ const PublicProfile: React.FC = () => {
 
   const location = [profile?.city, profile?.state, profile?.country].filter(Boolean).join(", ");
   const isOwnProfile = currentUser?.id === profile?.id;
+
+  const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !isOwnProfile) return;
+    if (!file.type.startsWith("image/")) {
+      showToast(t("social.imageInvalid"), "warning");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast(t("social.imageTooLarge"), "warning");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      await createProfilePhoto(file);
+      if (id) setPhotos(await fetchProfilePhotos(id));
+    } catch {
+      showToast(t("social.photoUploadError"), "error");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   return (
     <div className="min-h-[100dvh] bg-darkbg text-white p-4 md:p-8">
@@ -120,6 +152,40 @@ const PublicProfile: React.FC = () => {
                 <p className="text-xl font-black text-white">{profile.posts_count || 0}</p>
                 <p className="text-[9px] font-black uppercase tracking-widest text-mutedgray">{t("social.postsLabel")}</p>
               </div>
+            </section>
+
+            <section className="flex flex-col gap-3 rounded-2xl border border-white/5 bg-black/15 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-[10px] font-black uppercase tracking-widest text-volt">{t("social.photos")}</h2>
+                {isOwnProfile && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => profilePhotoInputRef.current?.click()}
+                      disabled={uploadingPhoto}
+                      className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[9px] font-black uppercase tracking-wider text-white hover:border-volt/40 hover:text-volt disabled:opacity-50"
+                    >
+                      <ImagePlus className="h-3.5 w-3.5" />
+                      {uploadingPhoto ? t("dashboard.uploadingPhoto") : t("social.addPhoto")}
+                    </button>
+                    <input ref={profilePhotoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                  </>
+                )}
+              </div>
+              {photos.length === 0 ? (
+                <p className="text-[10px] font-semibold text-mutedgray">{t("social.noPhotos")}</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {photos.map((photo) => (
+                    <img
+                      key={photo.id}
+                      src={photo.image_url}
+                      alt={photo.caption || t("social.photos")}
+                      className="aspect-square w-full rounded-2xl border border-white/10 object-cover"
+                    />
+                  ))}
+                </div>
+              )}
             </section>
 
             <section className="grid gap-2 text-xs font-semibold text-mutedgray sm:grid-cols-2">

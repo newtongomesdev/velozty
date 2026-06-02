@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Heart, MessageCircle, RefreshCw, Search, Send, UserMinus, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, Heart, ImagePlus, MessageCircle, RefreshCw, Search, Send, UserMinus, UserPlus, Users, X } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Card, CardTitle } from "../components/ui/Card";
 import { useToast } from "../components/ui/Toast";
@@ -15,6 +15,7 @@ import {
   toggleSocialCommentLike,
   toggleSocialLike,
   unfollowUser,
+  uploadMediaImage,
   type SocialPost,
   type SocialProfile,
 } from "../lib/supabase";
@@ -62,6 +63,8 @@ const Social: React.FC = () => {
   const [posting, setPosting] = useState(false);
   const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({});
   const [mentionTarget, setMentionTarget] = useState<MentionTarget | null>(null);
+  const [postImageFile, setPostImageFile] = useState<File | null>(null);
+  const [postImagePreview, setPostImagePreview] = useState("");
 
   const loadSocialData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -150,11 +153,14 @@ const Social: React.FC = () => {
 
   const handlePost = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!content.trim()) return;
+    if (!content.trim() && !postImageFile) return;
     setPosting(true);
     try {
-      await createSocialPost(content, user);
+      const imageUrl = postImageFile ? await uploadMediaImage(postImageFile, "social") : null;
+      await createSocialPost(content, user, imageUrl);
       setContent("");
+      setPostImageFile(null);
+      setPostImagePreview("");
       showToast(t("social.postCreated"), "success");
       await loadSocialData(true); // Silent update
     } catch {
@@ -257,6 +263,22 @@ const Social: React.FC = () => {
     }
   };
 
+  const handlePostImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      showToast(t("social.imageInvalid"), "warning");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast(t("social.imageTooLarge"), "warning");
+      return;
+    }
+    setPostImageFile(file);
+    setPostImagePreview(URL.createObjectURL(file));
+  };
+
   const renderMentionOptions = () => (
     mentionOptions.length > 0 && (
       <div className="absolute left-0 right-0 top-full z-30 mt-1 max-h-44 overflow-y-auto rounded-xl border border-volt/25 bg-neoncard/95 p-1.5 shadow-[0_12px_32px_rgba(0,0,0,0.28)] backdrop-blur-xl">
@@ -327,11 +349,37 @@ const Social: React.FC = () => {
                 />
                 {mentionTarget?.kind === "post" && renderMentionOptions()}
               </div>
+              {postImagePreview && (
+                <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/30">
+                  <img src={postImagePreview} alt={t("social.imagePreview")} className="max-h-72 w-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      URL.revokeObjectURL(postImagePreview);
+                      setPostImageFile(null);
+                      setPostImagePreview("");
+                    }}
+                    className="absolute right-2 top-2 rounded-xl border border-white/10 bg-black/70 p-2 text-white hover:bg-hyperpink"
+                    title={t("social.removePhoto")}
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black text-mutedgray font-mono">{content.length}/280</span>
-                <Button type="submit" variant="volt" isLoading={posting} disabled={!content.trim()} className="text-xs py-2.5 px-5">
-                  {t("social.post")}
-                </Button>
+                <div className="flex items-center gap-2">
+                  <label
+                    className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-xl border border-white/10 bg-white/5 text-mutedgray transition-colors hover:border-volt/40 hover:text-volt"
+                    title={t("social.addPhoto")}
+                  >
+                    <ImagePlus className="h-4.5 w-4.5" />
+                    <input type="file" accept="image/*" className="hidden" onChange={handlePostImageChange} />
+                  </label>
+                  <Button type="submit" variant="volt" isLoading={posting} disabled={!content.trim() && !postImageFile} className="text-xs py-2.5 px-5">
+                    {t("social.post")}
+                  </Button>
+                </div>
               </div>
             </form>
           </Card>
@@ -373,6 +421,13 @@ const Social: React.FC = () => {
                       </div>
                     </div>
                     <p className="mt-2 text-sm text-white/90 leading-relaxed whitespace-pre-wrap">{renderWithMentions(post.content)}</p>
+                    {post.image_url && (
+                      <img
+                        src={post.image_url}
+                        alt={t("social.postImage")}
+                        className="mt-3 max-h-[420px] w-full rounded-2xl border border-white/10 object-cover"
+                      />
+                    )}
                     <div className="mt-3 flex items-center gap-3 border-t border-white/5 pt-3">
                       <button
                         type="button"

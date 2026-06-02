@@ -8,13 +8,23 @@ import { useI18n } from "../components/i18n/I18nProvider";
 import { useTheme } from "../App";
 import { getNotificationCapability, getWakeLockStatus, requestPwaNotifications, requestScreenWakeLock, type NotificationCapability, type WakeLockStatus } from "../lib/devicePermissions";
 import { 
+  cancelRace,
+  createProfilePhoto,
   deleteMyAccount,
   exportMyData,
+  fetchNotifications,
+  fetchProfilePhotos,
+  fetchPublicRaces,
   fetchRacesForDashboard, 
+  getStravaAuthorizationUrl,
   joinRace,
-  updateUserProfile
+  markNotificationsRead,
+  uploadMediaImage,
+  updateUserProfile,
+  isValidUsernameFormat,
+  isUsernameAvailable
 } from "../lib/supabase";
-import type { Race } from "../lib/supabase";
+import type { AppNotification, ProfilePhoto, Race } from "../lib/supabase";
 import { 
   Plus, 
   LogOut, 
@@ -37,13 +47,19 @@ import {
   Languages,
   ShieldCheck,
   Download,
-  Trash2
+  Trash2,
+  Pencil,
+  Ban,
+  Bell,
+  ImagePlus,
+  ExternalLink
 } from "lucide-react";
 import dayjs from "dayjs";
 
 const LGPD_CONSENT_KEY = "velozty_lgpd_consent";
 const LGPD_EXPORT_PREFIXES = ["velozty_", "velocity_"];
 const ADMIN_EMAIL = "egeohub101@gmail.com";
+const RACE_REMINDER_KEY = "velozty_race_reminder_hours";
 
 export const Dashboard: React.FC = () => {
   const { user, logoutUser } = useAuth();
@@ -54,6 +70,7 @@ export const Dashboard: React.FC = () => {
   
   const [createdRaces, setCreatedRaces] = useState<Race[]>([]);
   const [joinedRaces, setJoinedRaces] = useState<Race[]>([]);
+  const [publicRaces, setPublicRaces] = useState<Race[]>([]);
   const [loading, setLoading] = useState(true);
   
   // Code-joining input state
@@ -64,6 +81,8 @@ export const Dashboard: React.FC = () => {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [newDisplayName, setNewDisplayName] = useState("");
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameMessage, setUsernameMessage] = useState("");
   const [newCountry, setNewCountry] = useState("Brasil");
   const [newStateVal, setNewStateVal] = useState("");
   const [newCity, setNewCity] = useState("");
@@ -77,6 +96,14 @@ export const Dashboard: React.FC = () => {
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [lgpdConsent, setLgpdConsent] = useState(() => localStorage.getItem(LGPD_CONSENT_KEY) === "accepted");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const profilePhotoInputRef = useRef<HTMLInputElement>(null);
+  const [profilePhotos, setProfilePhotos] = useState<ProfilePhoto[]>([]);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingProfilePhoto, setUploadingProfilePhoto] = useState(false);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [raceReminderHours, setRaceReminderHours] = useState(() => localStorage.getItem(RACE_REMINDER_KEY) || "24");
+  const stravaAuthorizationUrl = getStravaAuthorizationUrl();
 
   const [gpsAccuracy, setGpsAccuracy] = useState(() => {
     return localStorage.getItem("velocity_gps_accuracy") || "high";
@@ -88,10 +115,40 @@ export const Dashboard: React.FC = () => {
     return parseFloat(localStorage.getItem("velocity_gps_autopause_speed") || "1.2");
   });
 
+  const loadNotifications = async () => {
+    try {
+      const items = await fetchNotifications();
+      setNotifications(items);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loadProfilePhotos = async () => {
+    if (!user?.id) return;
+    try {
+      const photos = await fetchProfilePhotos(user.id);
+      setProfilePhotos(photos);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loadPublicRaceNotifications = async () => {
+    try {
+      const items = await fetchPublicRaces();
+      setPublicRaces(items);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   // Pre-fill profile values when user session loads
   useEffect(() => {
     if (user) {
       setNewDisplayName(user.display_name || "");
+      setNewUsername(user.username || "");
+      setUsernameMessage("");
       setNewCountry(user.country || "Brasil");
       setNewStateVal(user.state || "");
       setNewCity(user.city || "");
@@ -105,30 +162,80 @@ export const Dashboard: React.FC = () => {
     }
   }, [user]);
 
-  // Handle avatar file selection → convert to base64 data URL
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Handle avatar file selection
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > 5 * 1024 * 1024) {
       showToast(t("dashboard.photoTooLarge"), "warning");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const result = ev.target?.result as string;
-      setAvatarPreview(result);
-      setNewAvatarUrl(result);
-    };
-    reader.readAsDataURL(file);
+    setUploadingAvatar(true);
+    const localPreview = URL.createObjectURL(file);
+    setAvatarPreview(localPreview);
+    try {
+      const uploadedUrl = await uploadMediaImage(file, "avatars");
+      setNewAvatarUrl(uploadedUrl);
+      setAvatarPreview(uploadedUrl);
+      showToast(t("dashboard.photoUploaded"), "success");
+    } catch (err: any) {
+      console.error(err);
+      setAvatarPreview(newAvatarUrl);
+      showToast(err.message || t("dashboard.photoUploadError"), "error");
+    } finally {
+      URL.revokeObjectURL(localPreview);
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleProfilePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast(t("dashboard.photoTooLarge"), "warning");
+      return;
+    }
+    setUploadingProfilePhoto(true);
+    try {
+      await createProfilePhoto(file);
+      await loadProfilePhotos();
+      showToast(t("dashboard.profilePhotoPosted"), "success");
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || t("dashboard.profilePhotoError"), "error");
+    } finally {
+      setUploadingProfilePhoto(false);
+    }
   };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDisplayName.trim()) return;
+    const trimmedUsername = newUsername.trim().replace(/^@+/, "");
+    const usernameChanged = Boolean(user?.username && trimmedUsername.toLowerCase() !== user.username.toLowerCase());
+    if (!trimmedUsername || !isValidUsernameFormat(trimmedUsername)) {
+      showToast(t("dashboard.usernameInvalid"), "warning");
+      return;
+    }
+    if (usernameChanged) {
+      const usernameUpdatedAt = user?.username_updated_at ? dayjs(user.username_updated_at) : null;
+      if (usernameUpdatedAt && dayjs().diff(usernameUpdatedAt, "day", true) < 7) {
+        showToast(t("dashboard.usernameLocked"), "warning");
+        return;
+      }
+      const available = await isUsernameAvailable(trimmedUsername, user?.id);
+      if (!available) {
+        showToast(t("dashboard.usernameTaken"), "warning");
+        return;
+      }
+    }
     setUpdatingProfile(true);
     try {
       await updateUserProfile({
         display_name: newDisplayName,
+        username: trimmedUsername,
         country: newCountry,
         state: newStateVal,
         city: newCity,
@@ -153,10 +260,16 @@ export const Dashboard: React.FC = () => {
     localStorage.setItem("velocity_gps_accuracy", gpsAccuracy);
     localStorage.setItem("velocity_gps_smoothing", gpsSmoothing);
     localStorage.setItem("velocity_gps_autopause_speed", gpsAutoPauseSpeed.toString());
+    localStorage.setItem(RACE_REMINDER_KEY, raceReminderHours);
     localStorage.setItem(LGPD_CONSENT_KEY, lgpdConsent ? "accepted" : "revoked");
     showToast(t("dashboard.settingsSaved"), "success");
     setShowSettingsModal(false);
   };
+
+  const usernameUpdatedAt = user?.username_updated_at ? dayjs(user.username_updated_at) : null;
+  const usernameDaysSinceChange = usernameUpdatedAt ? dayjs().diff(usernameUpdatedAt, "day", true) : 999;
+  const canEditUsername = usernameDaysSinceChange >= 7;
+  const usernameDaysRemaining = Math.max(1, Math.ceil(7 - usernameDaysSinceChange));
 
   const handleToggleLgpdConsent = () => {
     const nextValue = !lgpdConsent;
@@ -260,6 +373,62 @@ export const Dashboard: React.FC = () => {
     }
   }, [showSettingsModal]);
 
+  useEffect(() => {
+    if (user) {
+      loadNotifications();
+      loadProfilePhotos();
+      loadPublicRaceNotifications();
+    }
+  }, [user?.id]);
+
+  const reminderHours = Number(raceReminderHours) || 24;
+  const upcomingRaceNotifications: AppNotification[] = publicRaces
+    .filter((race) => {
+      if (!race.scheduled_at || race.status === "cancelled" || race.status === "finished") return false;
+      if (race.host_user_id === user?.id) return false;
+      const diffHours = dayjs(race.scheduled_at).diff(dayjs(), "hour", true);
+      return diffHours >= 0 && diffHours <= reminderHours;
+    })
+    .map((race) => ({
+      id: `upcoming-${race.id}`,
+      user_id: user?.id || "",
+      type: "upcoming_race" as const,
+      title: t("dashboard.upcomingRaceTitle"),
+      body: `${race.name} · ${dayjs(race.scheduled_at).format("DD/MM HH:mm")}`,
+      target_url: `/app/races/${race.id}`,
+      read_at: null,
+      created_at: race.scheduled_at || new Date().toISOString(),
+    }));
+
+  const allNotifications = [...upcomingRaceNotifications, ...notifications].sort((a, b) => (
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  ));
+  const unreadCount = allNotifications.filter(notification => !notification.read_at).length;
+
+  const handleOpenNotifications = async () => {
+    setShowNotifications(value => !value);
+    const unreadPersisted = notifications.filter(notification => !notification.read_at).map(notification => notification.id);
+    if (unreadPersisted.length > 0) {
+      await markNotificationsRead(unreadPersisted);
+      await loadNotifications();
+    }
+  };
+
+  const handleOpenNotificationTarget = (targetUrl?: string | null) => {
+    if (targetUrl) {
+      navigate(targetUrl);
+      setShowNotifications(false);
+    }
+  };
+
+  const handleConnectStrava = () => {
+    if (!stravaAuthorizationUrl) {
+      showToast(t("dashboard.stravaUnavailable"), "warning");
+      return;
+    }
+    window.location.href = stravaAuthorizationUrl;
+  };
+
   const handleRequestGPS = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
@@ -356,6 +525,20 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleCancelHostedRace = async (event: React.MouseEvent, race: Race) => {
+    event.stopPropagation();
+    if (!window.confirm(t("dashboard.cancelRaceConfirm"))) return;
+
+    try {
+      await cancelRace(race.id);
+      showToast(t("dashboard.raceCancelled"), "success");
+      await loadDashboardData();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || t("dashboard.raceCancelError"), "error");
+    }
+  };
+
   const getStatusBadge = (status: Race["status"]) => {
     const configs = {
       lobby: { text: t("dashboard.lobbyStatus"), style: "bg-white/5 border-white/10 text-white" },
@@ -389,7 +572,7 @@ export const Dashboard: React.FC = () => {
       <div className="max-w-4xl mx-auto flex flex-col gap-6 z-10 relative">
         
         {/* 1. ATHLETE BRAND HEADER */}
-        <header className="flex justify-between items-center bg-neoncard/50 border border-white/5 p-4 rounded-3xl backdrop-blur-md">
+        <header className="relative z-[200] flex justify-between items-center overflow-visible bg-neoncard/50 border border-white/5 p-4 rounded-3xl backdrop-blur-md">
           <div 
             onClick={() => setShowProfileModal(true)}
             className="flex items-center gap-3 cursor-pointer hover:opacity-90 active:scale-98 transition-all"
@@ -415,7 +598,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="relative z-[210] flex items-center gap-2">
             <button
               onClick={() => navigate("/app/social")}
               className="p-2.5 rounded-2xl bg-hyperpink/10 border border-hyperpink/20 text-hyperpink hover:text-white hover:bg-hyperpink hover:border-hyperpink transition-all focus:outline-none cursor-pointer shadow-[0_0_14px_rgba(255,43,214,0.16)]"
@@ -423,6 +606,53 @@ export const Dashboard: React.FC = () => {
             >
               <MessageCircle className="h-4.5 w-4.5" />
             </button>
+
+            <button
+              onClick={handleOpenNotifications}
+              className="relative p-2.5 rounded-2xl bg-white/5 border border-white/10 text-white/70 hover:text-volt hover:bg-volt/10 hover:border-volt/20 transition-all focus:outline-none cursor-pointer"
+              title={t("dashboard.notifications")}
+            >
+              <Bell className="h-4.5 w-4.5" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-hyperpink px-1 text-[9px] font-black text-white">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {showNotifications && (
+              <div className="fixed right-4 top-24 z-[100000] w-[min(92vw,340px)] rounded-2xl border border-white/10 bg-[#101018]/98 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl md:right-[max(1rem,calc((100vw-56rem)/2+1rem))]">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-volt">{t("dashboard.notifications")}</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowNotifications(false)}
+                    className="rounded-lg p-1 text-mutedgray hover:text-white"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <div className="flex max-h-80 flex-col gap-2 overflow-y-auto pr-1">
+                  {allNotifications.length === 0 ? (
+                    <p className="py-6 text-center text-[10px] font-bold uppercase text-mutedgray">{t("dashboard.noNotifications")}</p>
+                  ) : (
+                    allNotifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        onClick={() => handleOpenNotificationTarget(notification.target_url)}
+                        className="rounded-xl border border-white/5 bg-white/5 p-3 text-left hover:border-volt/30 hover:bg-volt/10"
+                      >
+                        <span className="block text-xs font-black uppercase text-white">{notification.title}</span>
+                        {notification.body && (
+                          <span className="mt-1 block text-[10px] font-semibold text-mutedgray">{notification.body}</span>
+                        )}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={() => setShowProfileModal(true)}
@@ -522,7 +752,7 @@ export const Dashboard: React.FC = () => {
               </p>
             </div>
 
-            <form onSubmit={handleJoinByCode} className="flex gap-2 w-full mt-2">
+            <form onSubmit={handleJoinByCode} className="grid w-full grid-cols-[minmax(0,1fr)_auto] gap-2 mt-2 lg:grid-cols-1">
               <input
                 type="text"
                 value={inviteCode}
@@ -530,13 +760,13 @@ export const Dashboard: React.FC = () => {
                 placeholder="EX: PAULIS"
                 maxLength={8}
                 required
-                className="flex-1 px-3 py-2.5 bg-black/45 border border-white/10 rounded-xl text-sm font-black text-center text-white focus:outline-none focus:border-volt tracking-widest uppercase placeholder-white/10 font-mono"
+                className="min-w-0 px-3 py-2.5 bg-black/45 border border-white/10 rounded-xl text-sm font-black text-center text-white focus:outline-none focus:border-volt tracking-widest uppercase placeholder-white/10 font-mono"
               />
               <Button
                 type="submit"
                 variant="volt"
                 isLoading={joinLoading}
-                className="px-5 py-2.5 font-extrabold uppercase text-xs"
+                className="px-5 py-2.5 font-extrabold uppercase text-xs lg:w-full"
               >
                 {t("dashboard.enter")}
               </Button>
@@ -600,13 +830,45 @@ export const Dashboard: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="flex flex-col items-end gap-1.5">
+                    <div className="flex flex-col items-end gap-2">
                       <span className="text-[9px] font-bold text-mutedgray font-mono">
                         {dayjs(race.created_at).format("DD/MM/YYYY")}
                       </span>
-                      <button className="text-xs font-black text-volt uppercase tracking-wider underline hover:text-white transition-colors focus:outline-none">
-                        {t("dashboard.open")}
-                      </button>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(`/app/races/${race.id}`);
+                          }}
+                          className="text-[10px] font-black text-volt uppercase tracking-wider underline hover:text-white transition-colors focus:outline-none"
+                        >
+                          {t("dashboard.open")}
+                        </button>
+                        {race.status === "lobby" && (
+                          <button
+                            type="button"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              navigate(`/app/races/${race.id}/edit`);
+                            }}
+                            className="inline-flex items-center gap-1 text-[10px] font-black text-cyan-300 uppercase tracking-wider underline hover:text-white transition-colors focus:outline-none"
+                          >
+                            <Pencil className="h-3 w-3" />
+                            {t("dashboard.edit")}
+                          </button>
+                        )}
+                        {(race.status === "lobby" || race.status === "active") && (
+                          <button
+                            type="button"
+                            onClick={(event) => handleCancelHostedRace(event, race)}
+                            className="inline-flex items-center gap-1 text-[10px] font-black text-red-400 uppercase tracking-wider underline hover:text-white transition-colors focus:outline-none"
+                          >
+                            <Ban className="h-3 w-3" />
+                            {t("dashboard.cancelRace")}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </Card>
                 ))}
@@ -715,8 +977,44 @@ export const Dashboard: React.FC = () => {
                   onChange={handleAvatarChange}
                 />
                 <p className="text-[9px] text-mutedgray uppercase tracking-wider font-bold">
-                  {t("dashboard.clickPhoto")}
+                  {uploadingAvatar ? t("dashboard.uploadingPhoto") : t("dashboard.clickPhoto")}
                 </p>
+              </div>
+
+              <div className="flex flex-col gap-2 rounded-2xl border border-white/5 bg-black/20 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-volt">{t("dashboard.profilePhotos")}</span>
+                  <button
+                    type="button"
+                    onClick={() => profilePhotoInputRef.current?.click()}
+                    disabled={uploadingProfilePhoto}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[9px] font-black uppercase tracking-wider text-white hover:border-volt/40 hover:text-volt disabled:opacity-50"
+                  >
+                    <ImagePlus className="h-3.5 w-3.5" />
+                    {uploadingProfilePhoto ? t("dashboard.uploadingPhoto") : t("dashboard.addPhoto")}
+                  </button>
+                  <input
+                    ref={profilePhotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleProfilePhotoChange}
+                  />
+                </div>
+                {profilePhotos.length === 0 ? (
+                  <p className="text-[10px] font-semibold text-mutedgray">{t("dashboard.noProfilePhotos")}</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {profilePhotos.slice(0, 6).map((photo) => (
+                      <img
+                        key={photo.id}
+                        src={photo.image_url}
+                        alt={photo.caption || t("dashboard.profilePhotos")}
+                        className="aspect-square w-full rounded-xl border border-white/10 object-cover"
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* ── VISIBILIDADE DO PERFIL ── */}
@@ -759,16 +1057,48 @@ export const Dashboard: React.FC = () => {
                 {t("dashboard.profileIdentity")}
               </div>
 
-              {/* Locked Username & Email */}
+              {/* Username & Email */}
               <div className="grid grid-cols-2 gap-2">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[9px] font-black text-mutedgray uppercase tracking-wider">{t("dashboard.username")}</label>
-                  <input
-                    type="text"
-                    value={`@${user?.username || user?.display_name.toLowerCase().replace(/\s+/g, '') || "cyberracer"}`}
-                    disabled
-                    className="px-3.5 py-2.5 bg-white/5 border border-white/5 rounded-xl text-xs font-black text-mutedgray font-mono cursor-not-allowed select-none"
-                  />
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-black text-mutedgray">@</span>
+                    <input
+                      type="text"
+                      value={newUsername}
+                      onChange={(e) => {
+                        setNewUsername(e.target.value.replace(/^@+/, "").trim());
+                        setUsernameMessage("");
+                      }}
+                      onBlur={async () => {
+                        const candidate = newUsername.trim();
+                        if (!candidate || candidate.toLowerCase() === user?.username?.toLowerCase()) return;
+                        if (!isValidUsernameFormat(candidate)) {
+                          setUsernameMessage(t("dashboard.usernameInvalid"));
+                          return;
+                        }
+                        if (!canEditUsername) {
+                          setUsernameMessage(t("dashboard.usernameWait").replace("{{count}}", String(usernameDaysRemaining)));
+                          return;
+                        }
+                        setUsernameMessage(t("dashboard.usernameChecking"));
+                        const available = await isUsernameAvailable(candidate, user?.id);
+                        setUsernameMessage(available ? t("dashboard.usernameAvailable") : t("dashboard.usernameTaken"));
+                      }}
+                      disabled={!canEditUsername}
+                      maxLength={24}
+                      className={`w-full px-3.5 py-2.5 pl-6 bg-black/40 border rounded-xl text-xs font-black font-mono focus:outline-none ${
+                        canEditUsername
+                          ? "border-white/10 text-white focus:border-volt"
+                          : "border-white/5 text-mutedgray cursor-not-allowed"
+                      }`}
+                    />
+                  </div>
+                  <span className="text-[8px] font-bold text-mutedgray leading-snug">
+                    {canEditUsername
+                      ? (usernameMessage || t("dashboard.usernameEditHint"))
+                      : t("dashboard.usernameWait").replace("{{count}}", String(usernameDaysRemaining))}
+                  </span>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-[9px] font-black text-mutedgray uppercase tracking-wider">Email</label>
@@ -1008,6 +1338,64 @@ export const Dashboard: React.FC = () => {
                 <p className="text-[9px] text-mutedgray">
                   {t("dashboard.languageBody")}
                 </p>
+              </div>
+
+              <div className="border-t border-white/5" />
+
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-volt">
+                  <Bell className="h-4 w-4" />
+                  {t("dashboard.notifications")}
+                </div>
+                <div className="rounded-xl border border-white/5 bg-black/30 p-3">
+                  <label className="text-[9px] font-black text-mutedgray uppercase tracking-wider">{t("dashboard.raceReminder")}</label>
+                  <div className="mt-2 grid grid-cols-4 gap-2">
+                    {["6", "12", "24", "48"].map((hours) => (
+                      <button
+                        key={hours}
+                        type="button"
+                        onClick={() => setRaceReminderHours(hours)}
+                        className={`rounded-xl border py-2 text-[9px] font-black uppercase tracking-widest transition-all ${
+                          raceReminderHours === hours
+                            ? "border-transparent bg-volt text-black"
+                            : "border-white/5 bg-white/3 text-mutedgray hover:text-white"
+                        }`}
+                      >
+                        {t("dashboard.hoursBefore").replace("{{count}}", hours)}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[9px] text-mutedgray">{t("dashboard.raceReminderBody")}</p>
+                </div>
+              </div>
+
+              <div className="border-t border-white/5" />
+
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-volt">
+                  <ExternalLink className="h-4 w-4" />
+                  {t("dashboard.strava")}
+                </div>
+                <div className="rounded-xl border border-white/5 bg-black/30 p-3">
+                  <p className="text-[9px] text-mutedgray leading-relaxed">{t("dashboard.stravaBody")}</p>
+                  <button
+                    type="button"
+                    onClick={handleConnectStrava}
+                    className={`mt-3 inline-flex items-center justify-center gap-2 rounded-xl border px-3 py-2.5 text-[9px] font-black uppercase tracking-wider transition-all ${
+                      stravaAuthorizationUrl
+                        ? "border-orange-400/30 bg-orange-500/10 text-orange-300 hover:bg-orange-500/20"
+                        : "border-white/10 bg-white/5 text-white/70 hover:border-orange-400/30 hover:text-orange-300"
+                    }`}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {t("dashboard.connectStrava")}
+                  </button>
+                  {!stravaAuthorizationUrl && (
+                    <p className="mt-3 rounded-xl border border-white/5 bg-white/5 p-3 text-[9px] font-bold text-mutedgray">
+                      {t("dashboard.stravaMissingConfig")}
+                    </p>
+                  )}
+                </div>
               </div>
 
               <div className="border-t border-white/5" />

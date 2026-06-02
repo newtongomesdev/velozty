@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useToast } from "../components/ui/Toast";
 import { Button } from "../components/ui/Button";
 import { Card, CardTitle } from "../components/ui/Card";
 import { LeafletMap } from "../components/race/LeafletMap";
 import { useI18n } from "../components/i18n/I18nProvider";
-import { createRace } from "../lib/supabase";
+import { createRace, fetchRaceById, updateRace } from "../lib/supabase";
 import { z } from "zod";
 import { ArrowLeft, MapPin, Milestone, RotateCcw, HelpCircle, Navigation, Eye, EyeOff, CalendarClock, MapPinned, StickyNote } from "lucide-react";
 
@@ -30,10 +30,20 @@ const buildRaceFormSchema = (t: (key: string, vars?: Record<string, string | num
   scheduledAt: z.string().min(1, t("createRace.scheduleRequired")),
 });
 
+const toDatetimeLocal = (value?: string | null) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 16);
+};
+
 export const CreateRace: React.FC = () => {
   const navigate = useNavigate();
+  const { id: raceId } = useParams();
   const { showToast } = useToast();
   const { t } = useI18n();
+  const isEditing = Boolean(raceId);
   
   const [name, setName] = useState("");
   const [modality, setModality] = useState<"running" | "bike" | "other">("running");
@@ -56,6 +66,7 @@ export const CreateRace: React.FC = () => {
   const [finishPoint, setFinishPoint] = useState<{ lat: number; lng: number } | null>(null);
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: -23.55052, lng: -46.633308 });
   const [loading, setLoading] = useState(false);
+  const [loadingRace, setLoadingRace] = useState(false);
 
   // Auto-center map on user's current GPS position on mount
   useEffect(() => {
@@ -72,6 +83,56 @@ export const CreateRace: React.FC = () => {
       );
     }
   }, []);
+
+  useEffect(() => {
+    if (!raceId) return;
+
+    const loadRaceForEdit = async () => {
+      setLoadingRace(true);
+      try {
+        const race = await fetchRaceById(raceId);
+        if (!race) {
+          showToast(t("createRace.loadError"), "error");
+          navigate("/app/dashboard");
+          return;
+        }
+        if (race.status !== "lobby") {
+          showToast(t("createRace.editLocked"), "error");
+          navigate(`/app/races/${race.id}`);
+          return;
+        }
+
+        const start = { lat: race.start_lat, lng: race.start_lng };
+        const finish = { lat: race.finish_lat, lng: race.finish_lng };
+        setName(race.name);
+        setModality(race.modality);
+        setMode(race.mode);
+        setFinishRadiusM(race.finish_radius_m);
+        setIsPublic(race.is_public);
+        setAllowSpectators(race.allow_spectators ?? true);
+        setCity(race.city || "");
+        setStateVal(race.state || "");
+        setNeighborhood(race.neighborhood || "");
+        setStartAddress(race.start_address || race.address || "");
+        setFinishAddress(race.finish_address || "");
+        setLocationNotes(race.location_notes || "");
+        setScheduledAt(toDatetimeLocal(race.scheduled_at));
+        setStartPoint(start);
+        setFinishPoint(finish);
+        setMapCenter(start);
+        setWaypoints([]);
+        setRouteCoords(race.route_coords || [start, finish]);
+      } catch (err: any) {
+        console.error(err);
+        showToast(err.message || t("createRace.loadError"), "error");
+        navigate("/app/dashboard");
+      } finally {
+        setLoadingRace(false);
+      }
+    };
+
+    loadRaceForEdit();
+  }, [raceId, navigate, showToast, t]);
 
   const fetchGeocoding = async (lat: number, lng: number, pointType: "start" | "finish") => {
     try {
@@ -255,7 +316,7 @@ export const CreateRace: React.FC = () => {
     }
 
     try {
-      const newRace = await createRace({
+      const racePayload = {
         name: formData.name,
         modality: formData.modality,
         mode: formData.mode,
@@ -275,13 +336,17 @@ export const CreateRace: React.FC = () => {
         location_notes: formData.locationNotes,
         scheduled_at: new Date(formData.scheduledAt).toISOString(),
         route_coords: routeCoords
-      });
+      };
 
-      showToast(t("createRace.raceCreated"), "success");
-      navigate(`/app/races/${newRace.id}`);
+      const savedRace = isEditing && raceId
+        ? await updateRace(raceId, racePayload)
+        : await createRace(racePayload);
+
+      showToast(t(isEditing ? "createRace.raceUpdated" : "createRace.raceCreated"), "success");
+      navigate(`/app/races/${savedRace.id}`);
     } catch (err: any) {
       console.error(err);
-      showToast(err.message || t("createRace.createError"), "error");
+      showToast(err.message || t(isEditing ? "createRace.updateError" : "createRace.createError"), "error");
     } finally {
       setLoading(false);
     }
@@ -300,7 +365,7 @@ export const CreateRace: React.FC = () => {
         </button>
         <div>
           <span className="text-[9px] font-black tracking-widest text-mutedgray uppercase">{t("createRace.routeMapper")}</span>
-          <h1 className="text-xl font-black uppercase tracking-wide">{t("createRace.configureRace")}</h1>
+          <h1 className="text-xl font-black uppercase tracking-wide">{isEditing ? t("createRace.editRace") : t("createRace.configureRace")}</h1>
         </div>
       </header>
 
@@ -574,10 +639,10 @@ export const CreateRace: React.FC = () => {
             type="submit"
             variant="volt"
             fullWidth
-            isLoading={loading}
+            isLoading={loading || loadingRace}
             className="py-4 mt-2"
           >
-            {t("createRace.launchRace")}
+            {isEditing ? t("createRace.saveRace") : t("createRace.launchRace")}
           </Button>
         </form>
 
