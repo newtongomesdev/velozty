@@ -60,6 +60,24 @@ const translations = {
     feat3Desc: "Publique modelos por cidade e modalidade para outras pessoas encontrarem, pesquisarem e usarem no próximo encontro.",
     feat4Title: "Metas, Desafios e História",
     feat4Desc: "Crie metas pessoais, participe de desafios reais e guarde resultados, progresso e vitórias da turma no mesmo lugar.",
+    completeTitle: "Muito mais que marcar uma corrida",
+    completeSubtitle: "O Velozty junta corrida, amizade, comunidade e organização em um só lugar.",
+    complete1Title: "Rede social da turma",
+    complete1Desc: "Poste atualizações, fotos, comentários, curtidas e marque amigos com @.",
+    complete2Title: "Perfil público completo",
+    complete2Desc: "Mostre fotos, bio, cidade, histórico e Volts que duram 24 horas.",
+    complete3Title: "Notificações inteligentes",
+    complete3Desc: "Receba avisos sobre curtidas, comentários, mensagens e corridas públicas próximas.",
+    complete4Title: "Espectadores na corrida",
+    complete4Desc: "O criador decide se outras pessoas podem assistir à disputa em tempo real.",
+    complete5Title: "Hall da fama",
+    complete5Desc: "Veja campeões por quantidade de vitórias, modalidade, cidade, estado e país.",
+    complete6Title: "Fotos otimizadas",
+    complete6Desc: "Uploads de imagens são redimensionados e convertidos para WebP para economizar espaço.",
+    complete7Title: "Privacidade e LGPD",
+    complete7Desc: "Cadastro com aceite de termos, privacidade e controles de dados do usuário.",
+    complete8Title: "Pronto para celular",
+    complete8Desc: "Permissões de localização, notificações e tela ativa preparadas para uso durante a corrida.",
     pricingTitle: "Acesso Livre para Todos",
     simplePlans: "Planos simples",
     pricingSubtitle: "Comece de graça com a turma e evolua quando quiser mais controle, mais dados e mais presença nos encontros.",
@@ -144,6 +162,24 @@ const translations = {
     feat3Desc: "Publish route templates by city and modality so other people can discover, search, and reuse them in their next meetup.",
     feat4Title: "Goals, Challenges, and Story",
     feat4Desc: "Set personal goals, join real challenges, and keep wins, progress, and standout moments in one place.",
+    completeTitle: "More than setting up a race",
+    completeSubtitle: "Velozty brings racing, friendship, community, and organization into one place.",
+    complete1Title: "Crew social network",
+    complete1Desc: "Post updates, photos, comments, likes, and mention friends with @.",
+    complete2Title: "Complete public profile",
+    complete2Desc: "Show photos, bio, city, history, and 24-hour Volts.",
+    complete3Title: "Smart notifications",
+    complete3Desc: "Get alerts for likes, comments, messages, and nearby public races.",
+    complete4Title: "Race spectators",
+    complete4Desc: "The creator decides whether other people can watch the race in real time.",
+    complete5Title: "Hall of fame",
+    complete5Desc: "See champions by wins, modality, city, state, and country.",
+    complete6Title: "Optimized photos",
+    complete6Desc: "Image uploads are resized and converted to WebP to save storage.",
+    complete7Title: "Privacy and consent",
+    complete7Desc: "Signup includes terms, privacy acceptance, and user data controls.",
+    complete8Title: "Ready for mobile",
+    complete8Desc: "Location, notifications, and wake-lock permissions are prepared for race use.",
     pricingTitle: "Free Access for Everyone",
     simplePlans: "Simple plans",
     pricingSubtitle: "Start free with your crew and level up when you want more control, more insight, and more presence in every meetup.",
@@ -228,6 +264,24 @@ const translations = {
     feat3Desc: "Publica modelos por ciudad y modalidad para que otras personas los encuentren, los busquen y los reutilicen en su próximo encuentro.",
     feat4Title: "Metas, Desafíos e Historia",
     feat4Desc: "Crea metas personales, entra en desafíos reales y guarda victorias, progreso y momentos destacados en un solo lugar.",
+    completeTitle: "Mucho más que crear una carrera",
+    completeSubtitle: "Velozty reúne carrera, amistad, comunidad y organización en un solo lugar.",
+    complete1Title: "Red social del grupo",
+    complete1Desc: "Publica actualizaciones, fotos, comentarios, likes y menciona amigos con @.",
+    complete2Title: "Perfil público completo",
+    complete2Desc: "Muestra fotos, bio, ciudad, historial y Volts que duran 24 horas.",
+    complete3Title: "Notificaciones inteligentes",
+    complete3Desc: "Recibe avisos de likes, comentarios, mensajes y carreras públicas cercanas.",
+    complete4Title: "Espectadores en carrera",
+    complete4Desc: "El creador decide si otras personas pueden mirar la disputa en tiempo real.",
+    complete5Title: "Salón de la fama",
+    complete5Desc: "Mira campeones por victorias, modalidad, ciudad, estado y país.",
+    complete6Title: "Fotos optimizadas",
+    complete6Desc: "Las imágenes se redimensionan y se convierten a WebP para ahorrar espacio.",
+    complete7Title: "Privacidad y consentimiento",
+    complete7Desc: "El registro incluye aceptación de términos, privacidad y controles de datos.",
+    complete8Title: "Listo para móvil",
+    complete8Desc: "Permisos de ubicación, notificaciones y pantalla activa preparados para la carrera.",
     pricingTitle: "Acceso Libre para Todos",
     simplePlans: "Planes simples",
     pricingSubtitle: "Empieza gratis con tu grupo y sube de nivel cuando quieras más control, más datos y más presencia en cada encuentro.",
@@ -736,7 +790,7 @@ export const LandingPage: React.FC = () => {
         </div>
 
         {/* Feature Grid Chassis */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
           {/* Card Feature 1 */}
           <Card glow="volt" className="p-6 border border-white/10 hover:bg-white/5 transition-colors group">
@@ -773,6 +827,28 @@ export const LandingPage: React.FC = () => {
             <h3 className="text-base font-black uppercase tracking-wider text-white mb-2">{t.feat4Title}</h3>
             <p className="text-xs font-semibold text-mutedgray leading-relaxed uppercase">{t.feat4Desc}</p>
           </Card>
+
+          {[
+            { icon: Users, title: t.complete1Title, desc: t.complete1Desc, glow: "volt" as const, iconClass: "text-volt", bgClass: "bg-volt/10 border-volt/20" },
+            { icon: Crown, title: t.complete2Title, desc: t.complete2Desc, glow: "pink" as const, iconClass: "text-hyperpink", bgClass: "bg-hyperpink/10 border-hyperpink/20" },
+            { icon: Wifi, title: t.complete3Title, desc: t.complete3Desc, glow: "volt" as const, iconClass: "text-volt", bgClass: "bg-volt/10 border-volt/20" },
+            { icon: Activity, title: t.complete4Title, desc: t.complete4Desc, glow: "pink" as const, iconClass: "text-hyperpink", bgClass: "bg-hyperpink/10 border-hyperpink/20" },
+            { icon: Trophy, title: t.complete5Title, desc: t.complete5Desc, glow: "volt" as const, iconClass: "text-volt", bgClass: "bg-volt/10 border-volt/20" },
+            { icon: Heart, title: t.complete6Title, desc: t.complete6Desc, glow: "pink" as const, iconClass: "text-hyperpink", bgClass: "bg-hyperpink/10 border-hyperpink/20" },
+            { icon: ShieldCheck, title: t.complete7Title, desc: t.complete7Desc, glow: "volt" as const, iconClass: "text-volt", bgClass: "bg-volt/10 border-volt/20" },
+            { icon: Gauge, title: t.complete8Title, desc: t.complete8Desc, glow: "pink" as const, iconClass: "text-hyperpink", bgClass: "bg-hyperpink/10 border-hyperpink/20" },
+          ].map((item) => {
+            const Icon = item.icon;
+            return (
+              <Card key={item.title} glow={item.glow} className="p-6 border border-white/10 hover:bg-white/5 transition-colors group">
+                <div className={`${item.bgClass} border p-3 rounded-2xl w-fit mb-4 group-hover:scale-105 transition-transform`}>
+                  <Icon className={`h-5 w-5 ${item.iconClass}`} />
+                </div>
+                <h3 className="text-base font-black uppercase tracking-wider text-white mb-2">{item.title}</h3>
+                <p className="text-xs font-semibold text-mutedgray leading-relaxed uppercase">{item.desc}</p>
+              </Card>
+            );
+          })}
         </div>
       </section>
 
