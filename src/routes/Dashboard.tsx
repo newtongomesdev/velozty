@@ -10,23 +10,36 @@ import { getNotificationCapability, getWakeLockStatus, requestPwaNotifications, 
 import {
   cancelRace,
   createProfilePhoto,
+  createUserChallenge,
+  createUserGoal,
+  deleteSavedRoute,
   deleteMyAccount,
+  deleteUserGoal,
   exportMyData,
+  fetchDashboardProgressSummary,
   fetchNotifications,
   fetchProfilePhotos,
+  fetchPublicRouteGallery,
   fetchPublicRaces,
   fetchRacesForDashboard, 
+  fetchUserChallenges,
+  fetchUserGoals,
+  fetchVeloztyRouteLibrary,
   getStravaAuthorizationUrl,
+  joinUserChallenge,
   joinRace,
   markNotificationsRead,
   MAX_IMAGE_UPLOAD_BYTES,
+  saveRouteToLibrary,
   uploadMediaImage,
+  updateSavedRouteModel,
   updateUserProfile,
   isValidUsernameFormat,
   isUsernameAvailable
 } from "../lib/supabase";
-import type { AppNotification, ProfilePhoto, Race } from "../lib/supabase";
+import type { AppNotification, DashboardProgressSummary, ProfilePhoto, Race, UserChallengeWithLeaderboard, UserGoalWithProgress, VeloztyRouteLibraryEntry } from "../lib/supabase";
 import { sanitizeImageUrl } from "../lib/sanitize";
+import { formatDistance } from "../lib/geo";
 import { 
   Plus, 
   LogOut, 
@@ -54,7 +67,13 @@ import {
   Ban,
   Bell,
   ImagePlus,
-  ExternalLink
+  ExternalLink,
+  Route,
+  Target,
+  Flag,
+  Gauge,
+  Globe,
+  Search,
 } from "lucide-react";
 import dayjs from "dayjs";
 
@@ -62,6 +81,243 @@ const LGPD_CONSENT_KEY = "velozty_lgpd_consent";
 const LGPD_EXPORT_PREFIXES = ["velozty_", "velocity_"];
 const ADMIN_EMAILS = ["egeohub101@gmail.com", "ngfilho@gmail.com"];
 const RACE_REMINDER_KEY = "velozty_race_reminder_hours";
+
+const dashboardFeatureCopy = {
+  pt: {
+    progressHub: "Central de progresso",
+    routeLibrary: "Biblioteca de rotas",
+    routeLibraryBody: "Rotas reais salvas a partir das corridas que voce criou ou entrou.",
+    noRoutes: "Nenhuma rota real disponivel ainda.",
+    saveRoute: "Salvar rota",
+    routeSaved: "Rota salva.",
+    routeRemoved: "Rota removida.",
+    routeAlreadySaved: "Essa rota ja esta na sua biblioteca.",
+    routeLibraryHint: "Salve rotas das suas corridas para montar sua biblioteca real.",
+    savingRoute: "Salvando...",
+    createFromRoute: "Criar corrida",
+    editRoute: "Editar modelo",
+    editRouteModel: "Editar modelo de rota",
+    modelName: "Nome do modelo",
+    modelNotes: "Observações do modelo",
+    modelNotesPlaceholder: "Ex: melhor horário, ponto de encontro, atenção com trânsito...",
+    modelVisibility: "Visibilidade",
+    modelPublic: "Pública",
+    modelPrivate: "Privada",
+    saveModel: "Salvar modelo",
+    modelSaved: "Modelo de rota atualizado.",
+    visibilityPublicTag: "Pública",
+    visibilityPrivateTag: "Privada",
+    publicGallery: "Galeria pública de rotas",
+    publicGalleryBody: "Pesquise modelos publicados por cidade ou modalidade e reutilize no seu próximo encontro.",
+    searchRoutes: "Buscar rotas",
+    searchCityPlaceholder: "Cidade",
+    searchTextPlaceholder: "Nome ou observação",
+    noPublicRoutes: "Nenhum modelo público encontrado.",
+    useRoute: "Usar rota",
+    goalsTitle: "Metas Velozty",
+    goalsBody: "Metas reais calculadas pelas suas corridas e resultados.",
+    noGoals: "Nenhuma meta criada ainda.",
+    challengesTitle: "Desafios Velozty",
+    challengesBody: "Desafios reais entre voce e os atletas da sua rede.",
+    noChallenges: "Nenhum desafio criado ainda.",
+    totalDistance: "Distancia total",
+    weeklyDistance: "Semana",
+    monthlyDistance: "Mes",
+    wins: "Vitorias",
+    activeDays: "Dias ativos",
+    completedRaces: "Corridas concluidas",
+    createGoal: "Criar meta",
+    createChallenge: "Criar desafio",
+    goalCreated: "Meta criada.",
+    challengeCreated: "Desafio criado.",
+    challengeJoined: "Voce entrou no desafio.",
+    goalDeleted: "Meta removida.",
+    metricDistance: "Distancia",
+    metricRaces: "Corridas",
+    metricWins: "Vitorias",
+    metricTopSpeed: "Velocidade maxima",
+    timeframeWeek: "Semana",
+    timeframeMonth: "Mes",
+    timeframeAll: "Geral",
+    modalityAll: "Todas",
+    sourceHosted: "Criada por voce",
+    sourceJoined: "Entrou nela",
+    start: "Largada",
+    finish: "Chegada",
+    targetPlaceholder: "Meta em numero",
+    goalNamePlaceholder: "Ex: 50 km de bike",
+    challengeNamePlaceholder: "Ex: Sprint da semana",
+    ranking: "Ranking",
+    participants: "Participantes",
+    joinChallenge: "Entrar",
+    joinedChallenge: "Voce esta dentro",
+    savedRouteTag: "Salva",
+    target: "Meta",
+    progress: "Progresso",
+    createdAt: "Criado em",
+    routeCount: "Rotas",
+    kmUnit: "km",
+    racesUnit: "corridas",
+    winsUnit: "vitorias",
+    speedUnit: "km/h",
+  },
+  en: {
+    progressHub: "Progress hub",
+    routeLibrary: "Route library",
+    routeLibraryBody: "Real routes saved from races you hosted or joined.",
+    noRoutes: "No real routes available yet.",
+    saveRoute: "Save route",
+    routeSaved: "Route saved.",
+    routeRemoved: "Route removed.",
+    routeAlreadySaved: "This route is already in your library.",
+    routeLibraryHint: "Save routes from your races to build your real library.",
+    savingRoute: "Saving...",
+    createFromRoute: "Create race",
+    editRoute: "Edit model",
+    editRouteModel: "Edit route model",
+    modelName: "Model name",
+    modelNotes: "Model notes",
+    modelNotesPlaceholder: "Ex: best time, meeting point, traffic warning...",
+    modelVisibility: "Visibility",
+    modelPublic: "Public",
+    modelPrivate: "Private",
+    saveModel: "Save model",
+    modelSaved: "Route model updated.",
+    visibilityPublicTag: "Public",
+    visibilityPrivateTag: "Private",
+    publicGallery: "Public route gallery",
+    publicGalleryBody: "Search published templates by city or modality and reuse them in your next meetup.",
+    searchRoutes: "Search routes",
+    searchCityPlaceholder: "City",
+    searchTextPlaceholder: "Name or note",
+    noPublicRoutes: "No public route templates found.",
+    useRoute: "Use route",
+    goalsTitle: "Velozty goals",
+    goalsBody: "Real goals calculated from your races and results.",
+    noGoals: "No goals created yet.",
+    challengesTitle: "Velozty challenges",
+    challengesBody: "Real challenges between you and athletes in your network.",
+    noChallenges: "No challenges created yet.",
+    totalDistance: "Total distance",
+    weeklyDistance: "Week",
+    monthlyDistance: "Month",
+    wins: "Wins",
+    activeDays: "Active days",
+    completedRaces: "Finished races",
+    createGoal: "Create goal",
+    createChallenge: "Create challenge",
+    goalCreated: "Goal created.",
+    challengeCreated: "Challenge created.",
+    challengeJoined: "You joined the challenge.",
+    goalDeleted: "Goal removed.",
+    metricDistance: "Distance",
+    metricRaces: "Races",
+    metricWins: "Wins",
+    metricTopSpeed: "Top speed",
+    timeframeWeek: "Week",
+    timeframeMonth: "Month",
+    timeframeAll: "Overall",
+    modalityAll: "All",
+    sourceHosted: "Hosted by you",
+    sourceJoined: "You joined",
+    start: "Start",
+    finish: "Finish",
+    targetPlaceholder: "Numeric target",
+    goalNamePlaceholder: "Ex: 50 km on bike",
+    challengeNamePlaceholder: "Ex: Weekly sprint",
+    ranking: "Ranking",
+    participants: "Participants",
+    joinChallenge: "Join",
+    joinedChallenge: "You are in",
+    savedRouteTag: "Saved",
+    target: "Target",
+    progress: "Progress",
+    createdAt: "Created at",
+    routeCount: "Routes",
+    kmUnit: "km",
+    racesUnit: "races",
+    winsUnit: "wins",
+    speedUnit: "km/h",
+  },
+  es: {
+    progressHub: "Centro de progreso",
+    routeLibrary: "Biblioteca de rutas",
+    routeLibraryBody: "Rutas reales guardadas a partir de carreras que creaste o a las que entraste.",
+    noRoutes: "Aun no hay rutas reales disponibles.",
+    saveRoute: "Guardar ruta",
+    routeSaved: "Ruta guardada.",
+    routeRemoved: "Ruta eliminada.",
+    routeAlreadySaved: "Esa ruta ya esta en tu biblioteca.",
+    routeLibraryHint: "Guarda rutas de tus carreras para montar tu biblioteca real.",
+    savingRoute: "Guardando...",
+    createFromRoute: "Crear carrera",
+    editRoute: "Editar modelo",
+    editRouteModel: "Editar modelo de ruta",
+    modelName: "Nombre del modelo",
+    modelNotes: "Observaciones del modelo",
+    modelNotesPlaceholder: "Ej: mejor horario, punto de encuentro, atención al tránsito...",
+    modelVisibility: "Visibilidad",
+    modelPublic: "Pública",
+    modelPrivate: "Privada",
+    saveModel: "Guardar modelo",
+    modelSaved: "Modelo de ruta actualizado.",
+    visibilityPublicTag: "Pública",
+    visibilityPrivateTag: "Privada",
+    publicGallery: "Galería pública de rutas",
+    publicGalleryBody: "Busca modelos publicados por ciudad o modalidad y reutilízalos en tu próximo encuentro.",
+    searchRoutes: "Buscar rutas",
+    searchCityPlaceholder: "Ciudad",
+    searchTextPlaceholder: "Nombre u observación",
+    noPublicRoutes: "No se encontraron modelos públicos.",
+    useRoute: "Usar ruta",
+    goalsTitle: "Metas Velozty",
+    goalsBody: "Metas reales calculadas con tus carreras y resultados.",
+    noGoals: "Aun no hay metas creadas.",
+    challengesTitle: "Desafios Velozty",
+    challengesBody: "Desafios reales entre tu y los atletas de tu red.",
+    noChallenges: "Aun no hay desafios creados.",
+    totalDistance: "Distancia total",
+    weeklyDistance: "Semana",
+    monthlyDistance: "Mes",
+    wins: "Victorias",
+    activeDays: "Dias activos",
+    completedRaces: "Carreras terminadas",
+    createGoal: "Crear meta",
+    createChallenge: "Crear desafio",
+    goalCreated: "Meta creada.",
+    challengeCreated: "Desafio creado.",
+    challengeJoined: "Entraste al desafio.",
+    goalDeleted: "Meta eliminada.",
+    metricDistance: "Distancia",
+    metricRaces: "Carreras",
+    metricWins: "Victorias",
+    metricTopSpeed: "Velocidad maxima",
+    timeframeWeek: "Semana",
+    timeframeMonth: "Mes",
+    timeframeAll: "General",
+    modalityAll: "Todas",
+    sourceHosted: "Creada por ti",
+    sourceJoined: "Te uniste",
+    start: "Salida",
+    finish: "Llegada",
+    targetPlaceholder: "Meta numerica",
+    goalNamePlaceholder: "Ej: 50 km en bici",
+    challengeNamePlaceholder: "Ej: Sprint semanal",
+    ranking: "Ranking",
+    participants: "Participantes",
+    joinChallenge: "Entrar",
+    joinedChallenge: "Ya estas dentro",
+    savedRouteTag: "Guardada",
+    target: "Meta",
+    progress: "Progreso",
+    createdAt: "Creado el",
+    routeCount: "Rutas",
+    kmUnit: "km",
+    racesUnit: "carreras",
+    winsUnit: "victorias",
+    speedUnit: "km/h",
+  },
+} as const;
 
 export const Dashboard: React.FC = () => {
   const { user, logoutUser } = useAuth();
@@ -106,6 +362,44 @@ export const Dashboard: React.FC = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [raceReminderHours, setRaceReminderHours] = useState(() => localStorage.getItem(RACE_REMINDER_KEY) || "24");
   const stravaAuthorizationUrl = getStravaAuthorizationUrl();
+  const featureText = dashboardFeatureCopy[locale] || dashboardFeatureCopy.pt;
+
+  const [progressSummary, setProgressSummary] = useState<DashboardProgressSummary | null>(null);
+  const [routeLibrary, setRouteLibrary] = useState<VeloztyRouteLibraryEntry[]>([]);
+  const [publicRouteGallery, setPublicRouteGallery] = useState<VeloztyRouteLibraryEntry[]>([]);
+  const [userGoals, setUserGoals] = useState<UserGoalWithProgress[]>([]);
+  const [userChallenges, setUserChallenges] = useState<UserChallengeWithLeaderboard[]>([]);
+  const [savingGoal, setSavingGoal] = useState(false);
+  const [savingChallenge, setSavingChallenge] = useState(false);
+  const [savingRouteId, setSavingRouteId] = useState<string | null>(null);
+  const [joiningChallengeId, setJoiningChallengeId] = useState<string | null>(null);
+  const [editingRoute, setEditingRoute] = useState<VeloztyRouteLibraryEntry | null>(null);
+  const [savingRouteModel, setSavingRouteModel] = useState(false);
+  const [routeModelDraft, setRouteModelDraft] = useState({
+    name: "",
+    route_notes: "",
+    is_public: false,
+  });
+  const [routeGalleryLoading, setRouteGalleryLoading] = useState(false);
+  const [routeGalleryFilters, setRouteGalleryFilters] = useState({
+    city: "",
+    query: "",
+    modality: "all" as "running" | "bike" | "other" | "all",
+  });
+  const [goalDraft, setGoalDraft] = useState({
+    title: "",
+    metric: "distance" as "distance" | "races" | "wins",
+    target_value: "50",
+    timeframe: "month" as "week" | "month" | "all",
+    modality: "all" as "running" | "bike" | "other" | "all",
+  });
+  const [challengeDraft, setChallengeDraft] = useState({
+    title: "",
+    metric: "distance" as "distance" | "races" | "wins" | "top_speed",
+    target_value: "30",
+    timeframe: "week" as "week" | "month",
+    modality: "all" as "running" | "bike" | "other" | "all",
+  });
 
   const [gpsAccuracy, setGpsAccuracy] = useState(() => {
     return localStorage.getItem("velocity_gps_accuracy") || "high";
@@ -481,9 +775,19 @@ export const Dashboard: React.FC = () => {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const data = await fetchRacesForDashboard();
+      const [data, summary, routes, goals, challenges] = await Promise.all([
+        fetchRacesForDashboard(),
+        fetchDashboardProgressSummary(),
+        fetchVeloztyRouteLibrary(),
+        fetchUserGoals(),
+        fetchUserChallenges(),
+      ]);
       setCreatedRaces(data.created);
       setJoinedRaces(data.joined);
+      setProgressSummary(summary);
+      setRouteLibrary(routes);
+      setUserGoals(goals);
+      setUserChallenges(challenges);
     } catch (err: any) {
       console.error(err);
       showToast(t("dashboard.syncError"), "error");
@@ -492,9 +796,189 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const loadPublicRouteGallery = async (filters = routeGalleryFilters) => {
+    setRouteGalleryLoading(true);
+    try {
+      const routes = await fetchPublicRouteGallery(filters);
+      setPublicRouteGallery(routes);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setRouteGalleryLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadDashboardData();
+    loadPublicRouteGallery();
   }, []);
+
+  const formatMetricValue = (metric: "distance" | "races" | "wins" | "top_speed", value: number) => {
+    if (metric === "distance") return `${(value / 1000).toFixed(1)} ${featureText.kmUnit}`;
+    if (metric === "top_speed") return `${value.toFixed(1)} ${featureText.speedUnit}`;
+    if (metric === "wins") return `${Math.round(value)} ${featureText.winsUnit}`;
+    return `${Math.round(value)} ${featureText.racesUnit}`;
+  };
+
+  const getMetricLabel = (metric: "distance" | "races" | "wins" | "top_speed") => {
+    if (metric === "distance") return featureText.metricDistance;
+    if (metric === "wins") return featureText.metricWins;
+    if (metric === "top_speed") return featureText.metricTopSpeed;
+    return featureText.metricRaces;
+  };
+
+  const getTimeframeLabel = (timeframe: "week" | "month" | "all") => {
+    if (timeframe === "week") return featureText.timeframeWeek;
+    if (timeframe === "month") return featureText.timeframeMonth;
+    return featureText.timeframeAll;
+  };
+
+  const isRaceSaved = (raceId: string) => routeLibrary.some((route) => route.race_id === raceId);
+
+  const handleCreateGoal = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!goalDraft.title.trim() || Number(goalDraft.target_value) <= 0) return;
+    setSavingGoal(true);
+    try {
+      await createUserGoal({
+        title: goalDraft.title,
+        metric: goalDraft.metric,
+        target_value: Number(goalDraft.target_value),
+        timeframe: goalDraft.timeframe,
+        modality: goalDraft.modality,
+      });
+      setGoalDraft({
+        title: "",
+        metric: "distance",
+        target_value: "50",
+        timeframe: "month",
+        modality: "all",
+      });
+      showToast(featureText.goalCreated, "success");
+      await loadDashboardData();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || featureText.goalsTitle, "error");
+    } finally {
+      setSavingGoal(false);
+    }
+  };
+
+  const handleCreateChallenge = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!challengeDraft.title.trim() || Number(challengeDraft.target_value) <= 0) return;
+    setSavingChallenge(true);
+    try {
+      await createUserChallenge({
+        title: challengeDraft.title,
+        metric: challengeDraft.metric,
+        target_value: Number(challengeDraft.target_value),
+        timeframe: challengeDraft.timeframe,
+        modality: challengeDraft.modality,
+      });
+      setChallengeDraft({
+        title: "",
+        metric: "distance",
+        target_value: "30",
+        timeframe: "week",
+        modality: "all",
+      });
+      showToast(featureText.challengeCreated, "success");
+      await loadDashboardData();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || featureText.challengesTitle, "error");
+    } finally {
+      setSavingChallenge(false);
+    }
+  };
+
+  const handleDeleteGoal = async (goalId: string) => {
+    try {
+      await deleteUserGoal(goalId);
+      showToast(featureText.goalDeleted, "info");
+      await loadDashboardData();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || featureText.goalsTitle, "error");
+    }
+  };
+
+  const handleSaveRoute = async (raceId: string) => {
+    if (isRaceSaved(raceId)) {
+      showToast(featureText.routeAlreadySaved, "info");
+      return;
+    }
+    setSavingRouteId(raceId);
+    try {
+      await saveRouteToLibrary(raceId);
+      showToast(featureText.routeSaved, "success");
+      await loadDashboardData();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || featureText.routeLibrary, "error");
+    } finally {
+      setSavingRouteId(null);
+    }
+  };
+
+  const handleDeleteSavedRoute = async (routeId: string) => {
+    try {
+      await deleteSavedRoute(routeId);
+      showToast(featureText.routeRemoved, "info");
+      await loadDashboardData();
+      await loadPublicRouteGallery();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || featureText.routeLibrary, "error");
+    }
+  };
+
+  const openRouteEditor = (route: VeloztyRouteLibraryEntry) => {
+    setEditingRoute(route);
+    setRouteModelDraft({
+      name: route.name,
+      route_notes: route.route_notes || "",
+      is_public: Boolean(route.is_public),
+    });
+  };
+
+  const handleSaveRouteModel = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!editingRoute) return;
+    setSavingRouteModel(true);
+    try {
+      await updateSavedRouteModel(editingRoute.id, routeModelDraft);
+      showToast(featureText.modelSaved, "success");
+      setEditingRoute(null);
+      await loadDashboardData();
+      await loadPublicRouteGallery();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || featureText.routeLibrary, "error");
+    } finally {
+      setSavingRouteModel(false);
+    }
+  };
+
+  const handleJoinChallenge = async (challengeId: string) => {
+    setJoiningChallengeId(challengeId);
+    try {
+      await joinUserChallenge(challengeId);
+      showToast(featureText.challengeJoined, "success");
+      await loadDashboardData();
+    } catch (err: any) {
+      console.error(err);
+      showToast(err.message || featureText.challengesTitle, "error");
+    } finally {
+      setJoiningChallengeId(null);
+    }
+  };
+
+  const handleSearchPublicRoutes = async (event: React.FormEvent) => {
+    event.preventDefault();
+    await loadPublicRouteGallery(routeGalleryFilters);
+  };
 
   const handleLogout = async () => {
     try {
@@ -803,6 +1287,419 @@ export const Dashboard: React.FC = () => {
           </Card>
         </div>
 
+        <section className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+          <Card glow="volt" className="flex flex-col gap-4">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2 text-volt">
+                <Gauge className="h-5 w-5" />
+                {featureText.progressHub}
+              </CardTitle>
+              <p className="mt-1.5 text-xs text-mutedgray leading-relaxed">
+                {featureText.goalsBody}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+              <div className="rounded-2xl border border-white/5 bg-white/3 p-4">
+                <div className="text-[9px] font-black uppercase tracking-widest text-mutedgray">{featureText.totalDistance}</div>
+                <div className="mt-2 text-lg font-black text-white">{progressSummary ? formatDistance(progressSummary.total_distance_m) : "0m"}</div>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-white/3 p-4">
+                <div className="text-[9px] font-black uppercase tracking-widest text-mutedgray">{featureText.weeklyDistance}</div>
+                <div className="mt-2 text-lg font-black text-white">{progressSummary ? formatDistance(progressSummary.weekly_distance_m) : "0m"}</div>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-white/3 p-4">
+                <div className="text-[9px] font-black uppercase tracking-widest text-mutedgray">{featureText.monthlyDistance}</div>
+                <div className="mt-2 text-lg font-black text-white">{progressSummary ? formatDistance(progressSummary.monthly_distance_m) : "0m"}</div>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-white/3 p-4">
+                <div className="text-[9px] font-black uppercase tracking-widest text-mutedgray">{featureText.wins}</div>
+                <div className="mt-2 text-lg font-black text-white">{progressSummary?.wins || 0}</div>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-white/3 p-4">
+                <div className="text-[9px] font-black uppercase tracking-widest text-mutedgray">{featureText.completedRaces}</div>
+                <div className="mt-2 text-lg font-black text-white">{progressSummary?.completed_races || 0}</div>
+              </div>
+              <div className="rounded-2xl border border-white/5 bg-white/3 p-4">
+                <div className="text-[9px] font-black uppercase tracking-widest text-mutedgray">{featureText.activeDays}</div>
+                <div className="mt-2 text-lg font-black text-white">{progressSummary?.active_days || 0}</div>
+              </div>
+            </div>
+          </Card>
+
+          <Card glow="pink" className="flex flex-col gap-4">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2 text-hyperpink">
+                <Route className="h-5 w-5" />
+                {featureText.routeLibrary}
+              </CardTitle>
+              <p className="mt-1.5 text-xs text-mutedgray leading-relaxed">{featureText.routeLibraryBody}</p>
+            </div>
+            {routeLibrary.length === 0 ? (
+              <div className="rounded-2xl border border-white/5 bg-white/3 p-4 text-xs font-bold uppercase text-mutedgray">
+                <div>{featureText.noRoutes}</div>
+                <div className="mt-2 text-[10px] normal-case tracking-normal">{featureText.routeLibraryHint}</div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {routeLibrary.slice(0, 4).map((routeEntry) => (
+                  <div
+                    key={routeEntry.id}
+                    className="rounded-2xl border border-white/5 bg-white/3 p-4 cursor-pointer hover:border-hyperpink/30"
+                    onClick={() => routeEntry.race_id && navigate(`/races/${routeEntry.race_id}`)}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-black uppercase text-white">{routeEntry.name}</div>
+                        <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-mutedgray">
+                          {getModalityText(routeEntry.modality)} • {formatDistance(routeEntry.distance_m)}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-volt/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-volt">
+                          {featureText.savedRouteTag}
+                        </span>
+                        <span className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wider ${
+                          routeEntry.is_public ? "bg-hyperpink/15 text-hyperpink" : "bg-white/10 text-mutedgray"
+                        }`}>
+                          {routeEntry.is_public ? featureText.visibilityPublicTag : featureText.visibilityPrivateTag}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(`/races/new?savedRoute=${routeEntry.id}`);
+                          }}
+                          className="text-[10px] font-black uppercase tracking-wider text-hyperpink hover:text-white"
+                        >
+                          {featureText.createFromRoute}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openRouteEditor(routeEntry);
+                          }}
+                          className="text-[10px] font-black uppercase tracking-wider text-cyan-300 hover:text-white"
+                        >
+                          {featureText.editRoute}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDeleteSavedRoute(routeEntry.id);
+                          }}
+                          className="text-mutedgray hover:text-white"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="mt-3 grid gap-1 text-[10px] text-mutedgray">
+                      <span>{featureText.start}: {routeEntry.start_address || `${routeEntry.city || ""}${routeEntry.state ? `, ${routeEntry.state}` : ""}`}</span>
+                      <span>{featureText.finish}: {routeEntry.finish_address || routeEntry.country || "-"}</span>
+                      {routeEntry.route_notes ? <span>{routeEntry.route_notes}</span> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </section>
+
+        <section>
+          <Card glow="volt" className="flex flex-col gap-4">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2 text-volt">
+                <Globe className="h-5 w-5" />
+                {featureText.publicGallery}
+              </CardTitle>
+              <p className="mt-1.5 text-xs text-mutedgray leading-relaxed">{featureText.publicGalleryBody}</p>
+            </div>
+
+            <form onSubmit={handleSearchPublicRoutes} className="grid gap-2 md:grid-cols-[1fr_1fr_180px_auto]">
+              <input
+                type="text"
+                value={routeGalleryFilters.city}
+                onChange={(event) => setRouteGalleryFilters((current) => ({ ...current, city: event.target.value }))}
+                placeholder={featureText.searchCityPlaceholder}
+                className="px-3 py-2.5 bg-black/45 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-volt placeholder-white/15"
+              />
+              <input
+                type="text"
+                value={routeGalleryFilters.query}
+                onChange={(event) => setRouteGalleryFilters((current) => ({ ...current, query: event.target.value }))}
+                placeholder={featureText.searchTextPlaceholder}
+                className="px-3 py-2.5 bg-black/45 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-volt placeholder-white/15"
+              />
+              <select
+                value={routeGalleryFilters.modality}
+                onChange={(event) => setRouteGalleryFilters((current) => ({ ...current, modality: event.target.value as typeof current.modality }))}
+                className="profile-select px-3 py-2.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-volt cursor-pointer appearance-none font-sans"
+              >
+                <option value="all">{featureText.modalityAll}</option>
+                <option value="running">{getModalityText("running")}</option>
+                <option value="bike">{getModalityText("bike")}</option>
+                <option value="other">{getModalityText("other")}</option>
+              </select>
+              <Button type="submit" variant="volt" isLoading={routeGalleryLoading} className="px-4">
+                <span className="inline-flex items-center gap-1">
+                  <Search className="h-3.5 w-3.5" />
+                  {featureText.searchRoutes}
+                </span>
+              </Button>
+            </form>
+
+            {routeGalleryLoading ? (
+              <div className="rounded-2xl border border-white/5 bg-white/3 p-4 text-xs font-bold uppercase text-mutedgray animate-pulse">
+                {featureText.searchRoutes}
+              </div>
+            ) : publicRouteGallery.length === 0 ? (
+              <div className="rounded-2xl border border-white/5 bg-white/3 p-4 text-xs font-bold uppercase text-mutedgray">
+                {featureText.noPublicRoutes}
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2">
+                {publicRouteGallery.slice(0, 6).map((routeEntry) => (
+                  <div key={`public-${routeEntry.id}`} className="rounded-2xl border border-white/5 bg-white/3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-black uppercase text-white">{routeEntry.name}</div>
+                        <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-mutedgray">
+                          {getModalityText(routeEntry.modality)} • {routeEntry.city || routeEntry.state || "-"} • {formatDistance(routeEntry.distance_m)}
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="glass"
+                        onClick={() => navigate(`/races/new?savedRoute=${routeEntry.id}`)}
+                        className="h-8 px-3 text-[10px] font-black uppercase tracking-wider"
+                      >
+                        {featureText.useRoute}
+                      </Button>
+                    </div>
+                    <div className="mt-3 grid gap-1 text-[10px] text-mutedgray">
+                      <span>{featureText.start}: {routeEntry.start_address || "-"}</span>
+                      <span>{featureText.finish}: {routeEntry.finish_address || "-"}</span>
+                      {routeEntry.route_notes ? <span>{routeEntry.route_notes}</span> : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </section>
+
+        <section className="grid gap-4 xl:grid-cols-2">
+          <Card glow="volt" className="flex flex-col gap-4">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2 text-volt">
+                <Target className="h-5 w-5" />
+                {featureText.goalsTitle}
+              </CardTitle>
+              <p className="mt-1.5 text-xs text-mutedgray leading-relaxed">{featureText.goalsBody}</p>
+            </div>
+
+            <form onSubmit={handleCreateGoal} className="grid gap-2 md:grid-cols-2">
+              <input
+                type="text"
+                value={goalDraft.title}
+                onChange={(event) => setGoalDraft((current) => ({ ...current, title: event.target.value }))}
+                placeholder={featureText.goalNamePlaceholder}
+                className="px-3 py-2.5 bg-black/45 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-volt placeholder-white/15"
+              />
+              <input
+                type="number"
+                min="1"
+                value={goalDraft.target_value}
+                onChange={(event) => setGoalDraft((current) => ({ ...current, target_value: event.target.value }))}
+                placeholder={featureText.targetPlaceholder}
+                className="px-3 py-2.5 bg-black/45 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-volt placeholder-white/15"
+              />
+              <select
+                value={goalDraft.metric}
+                onChange={(event) => setGoalDraft((current) => ({ ...current, metric: event.target.value as typeof current.metric }))}
+                className="profile-select px-3 py-2.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-volt cursor-pointer appearance-none font-sans"
+              >
+                <option value="distance">{featureText.metricDistance}</option>
+                <option value="races">{featureText.metricRaces}</option>
+                <option value="wins">{featureText.metricWins}</option>
+              </select>
+              <select
+                value={goalDraft.timeframe}
+                onChange={(event) => setGoalDraft((current) => ({ ...current, timeframe: event.target.value as typeof current.timeframe }))}
+                className="profile-select px-3 py-2.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-volt cursor-pointer appearance-none font-sans"
+              >
+                <option value="week">{featureText.timeframeWeek}</option>
+                <option value="month">{featureText.timeframeMonth}</option>
+                <option value="all">{featureText.timeframeAll}</option>
+              </select>
+              <select
+                value={goalDraft.modality}
+                onChange={(event) => setGoalDraft((current) => ({ ...current, modality: event.target.value as typeof current.modality }))}
+                className="profile-select px-3 py-2.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-volt cursor-pointer appearance-none font-sans md:col-span-2"
+              >
+                <option value="all">{featureText.modalityAll}</option>
+                <option value="running">{getModalityText("running")}</option>
+                <option value="bike">{getModalityText("bike")}</option>
+                <option value="other">{getModalityText("other")}</option>
+              </select>
+              <Button type="submit" variant="volt" isLoading={savingGoal} className="md:col-span-2">
+                {featureText.createGoal}
+              </Button>
+            </form>
+
+            {userGoals.length === 0 ? (
+              <div className="rounded-2xl border border-white/5 bg-white/3 p-4 text-xs font-bold uppercase text-mutedgray">
+                {featureText.noGoals}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {userGoals.map((goal) => (
+                  <div key={goal.id} className="rounded-2xl border border-white/5 bg-white/3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-black uppercase text-white">{goal.title}</div>
+                        <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-mutedgray">
+                          {getMetricLabel(goal.metric)} • {getTimeframeLabel(goal.timeframe)}
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => handleDeleteGoal(goal.id)} className="text-red-400 hover:text-white">
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <div className="mt-3 h-2 rounded-full bg-white/10 overflow-hidden">
+                      <div className={`${goal.completed ? "bg-volt" : "bg-hyperpink"} h-full rounded-full`} style={{ width: `${Math.max(goal.progress_ratio * 100, 4)}%` }} />
+                    </div>
+                    <div className="mt-3 flex items-center justify-between text-[10px] font-bold text-mutedgray">
+                      <span>{featureText.progress}: {formatMetricValue(goal.metric, goal.current_value)}</span>
+                      <span>{featureText.target}: {formatMetricValue(goal.metric, goal.target_value)}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          <Card glow="pink" className="flex flex-col gap-4">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2 text-hyperpink">
+                <Flag className="h-5 w-5" />
+                {featureText.challengesTitle}
+              </CardTitle>
+              <p className="mt-1.5 text-xs text-mutedgray leading-relaxed">{featureText.challengesBody}</p>
+            </div>
+
+            <form onSubmit={handleCreateChallenge} className="grid gap-2 md:grid-cols-2">
+              <input
+                type="text"
+                value={challengeDraft.title}
+                onChange={(event) => setChallengeDraft((current) => ({ ...current, title: event.target.value }))}
+                placeholder={featureText.challengeNamePlaceholder}
+                className="px-3 py-2.5 bg-black/45 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-hyperpink placeholder-white/15"
+              />
+              <input
+                type="number"
+                min="1"
+                value={challengeDraft.target_value}
+                onChange={(event) => setChallengeDraft((current) => ({ ...current, target_value: event.target.value }))}
+                placeholder={featureText.targetPlaceholder}
+                className="px-3 py-2.5 bg-black/45 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-hyperpink placeholder-white/15"
+              />
+              <select
+                value={challengeDraft.metric}
+                onChange={(event) => setChallengeDraft((current) => ({ ...current, metric: event.target.value as typeof current.metric }))}
+                className="profile-select px-3 py-2.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-hyperpink cursor-pointer appearance-none font-sans"
+              >
+                <option value="distance">{featureText.metricDistance}</option>
+                <option value="races">{featureText.metricRaces}</option>
+                <option value="wins">{featureText.metricWins}</option>
+                <option value="top_speed">{featureText.metricTopSpeed}</option>
+              </select>
+              <select
+                value={challengeDraft.timeframe}
+                onChange={(event) => setChallengeDraft((current) => ({ ...current, timeframe: event.target.value as typeof current.timeframe }))}
+                className="profile-select px-3 py-2.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-hyperpink cursor-pointer appearance-none font-sans"
+              >
+                <option value="week">{featureText.timeframeWeek}</option>
+                <option value="month">{featureText.timeframeMonth}</option>
+              </select>
+              <select
+                value={challengeDraft.modality}
+                onChange={(event) => setChallengeDraft((current) => ({ ...current, modality: event.target.value as typeof current.modality }))}
+                className="profile-select px-3 py-2.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-hyperpink cursor-pointer appearance-none font-sans md:col-span-2"
+              >
+                <option value="all">{featureText.modalityAll}</option>
+                <option value="running">{getModalityText("running")}</option>
+                <option value="bike">{getModalityText("bike")}</option>
+                <option value="other">{getModalityText("other")}</option>
+              </select>
+              <Button type="submit" variant="pink" isLoading={savingChallenge} className="md:col-span-2">
+                {featureText.createChallenge}
+              </Button>
+            </form>
+
+            {userChallenges.length === 0 ? (
+              <div className="rounded-2xl border border-white/5 bg-white/3 p-4 text-xs font-bold uppercase text-mutedgray">
+                {featureText.noChallenges}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {userChallenges.map((challenge) => (
+                  <div key={challenge.id} className="rounded-2xl border border-white/5 bg-white/3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-black uppercase text-white">{challenge.title}</div>
+                        <div className="mt-1 text-[10px] font-black uppercase tracking-widest text-mutedgray">
+                          {getMetricLabel(challenge.metric)} • {getTimeframeLabel(challenge.timeframe)}
+                        </div>
+                        <div className="mt-1 text-[10px] font-bold text-mutedgray">
+                          {featureText.participants}: {challenge.participants_count}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="text-right text-[10px] font-bold text-mutedgray">
+                          <div>{featureText.target}</div>
+                          <div className="text-white">{formatMetricValue(challenge.metric, challenge.target_value)}</div>
+                        </div>
+                        {challenge.current_user_joined ? (
+                          <span className="rounded-full bg-volt/15 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-volt">
+                            {featureText.joinedChallenge}
+                          </span>
+                        ) : (
+                          <Button
+                            type="button"
+                            variant="glass"
+                            isLoading={joiningChallengeId === challenge.id}
+                            onClick={() => handleJoinChallenge(challenge.id)}
+                            className="h-8 rounded-xl border border-hyperpink/25 bg-hyperpink/10 px-3 text-[10px] font-black uppercase tracking-wider text-hyperpink hover:bg-hyperpink/15"
+                          >
+                            {featureText.joinChallenge}
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                      <div className="text-[10px] font-black uppercase tracking-widest text-hyperpink">{featureText.ranking}</div>
+                      {challenge.leaderboard.map((entry, index) => (
+                        <div key={`${challenge.id}-${entry.user_id}`} className="flex items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/20 px-3 py-2">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="text-[10px] font-black text-hyperpink">{index + 1}</span>
+                            <span className="truncate text-xs font-black text-white">{entry.display_name}</span>
+                          </div>
+                          <span className={`text-[10px] font-black ${entry.reached_target ? "text-volt" : "text-white"}`}>
+                            {formatMetricValue(challenge.metric, entry.score)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        </section>
+
         {/* 4. HISTORICAL STREAM LISTS */}
         <section className="flex flex-col gap-6">
           
@@ -844,6 +1741,20 @@ export const Dashboard: React.FC = () => {
                         {dayjs(race.created_at).format("DD/MM/YYYY")}
                       </span>
                       <div className="flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleSaveRoute(race.id);
+                          }}
+                          disabled={savingRouteId === race.id}
+                          className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider underline transition-colors focus:outline-none ${
+                            isRaceSaved(race.id) ? "text-volt hover:text-white" : "text-hyperpink hover:text-white"
+                          }`}
+                        >
+                          <Route className="h-3 w-3" />
+                          {savingRouteId === race.id ? featureText.savingRoute : isRaceSaved(race.id) ? featureText.savedRouteTag : featureText.saveRoute}
+                        </button>
                         <button
                           type="button"
                           onClick={(event) => {
@@ -922,9 +1833,32 @@ export const Dashboard: React.FC = () => {
                       <span className="text-[9px] font-bold text-mutedgray font-mono">
                         {dayjs(race.created_at).format("DD/MM/YYYY")}
                       </span>
-                      <button className="text-xs font-black text-hyperpink uppercase tracking-wider underline hover:text-white transition-colors focus:outline-none">
-                        {t("dashboard.open")}
-                      </button>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleSaveRoute(race.id);
+                          }}
+                          disabled={savingRouteId === race.id}
+                          className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider underline transition-colors focus:outline-none ${
+                            isRaceSaved(race.id) ? "text-volt hover:text-white" : "text-hyperpink hover:text-white"
+                          }`}
+                        >
+                          <Route className="h-3 w-3" />
+                          {savingRouteId === race.id ? featureText.savingRoute : isRaceSaved(race.id) ? featureText.savedRouteTag : featureText.saveRoute}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(`/races/${race.id}`);
+                          }}
+                          className="text-xs font-black text-hyperpink uppercase tracking-wider underline hover:text-white transition-colors focus:outline-none"
+                        >
+                          {t("dashboard.open")}
+                        </button>
+                      </div>
                     </div>
                   </Card>
                 ))}
@@ -933,6 +1867,82 @@ export const Dashboard: React.FC = () => {
           </div>
         </section>
       </div>
+
+      {editingRoute && (
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/65 backdrop-blur-md p-4 animate-fade-in">
+          <Card glow="pink" className="w-full max-w-md bg-[#101018]/95 border border-white/10 relative p-6 flex flex-col gap-5">
+            <div className="flex justify-between items-center border-b border-white/5 pb-3">
+              <div className="flex items-center gap-2">
+                <Route className="h-5 w-5 text-hyperpink" />
+                <h2 className="text-sm font-black uppercase tracking-widest text-white">{featureText.editRouteModel}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingRoute(null)}
+                className="p-1.5 rounded-xl bg-white/5 border border-white/10 text-mutedgray hover:text-white transition-all cursor-pointer"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveRouteModel} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-mutedgray">{featureText.modelName}</label>
+                <input
+                  type="text"
+                  value={routeModelDraft.name}
+                  onChange={(event) => setRouteModelDraft((current) => ({ ...current, name: event.target.value }))}
+                  className="px-3.5 py-3 bg-black/40 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-hyperpink"
+                  required
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-mutedgray">{featureText.modelNotes}</label>
+                <textarea
+                  value={routeModelDraft.route_notes}
+                  onChange={(event) => setRouteModelDraft((current) => ({ ...current, route_notes: event.target.value }))}
+                  rows={4}
+                  placeholder={featureText.modelNotesPlaceholder}
+                  className="px-3.5 py-3 bg-black/40 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-hyperpink resize-none"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[9px] font-black uppercase tracking-widest text-mutedgray">{featureText.modelVisibility}</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setRouteModelDraft((current) => ({ ...current, is_public: true }))}
+                    className={`py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
+                      routeModelDraft.is_public
+                        ? "bg-hyperpink text-white border-transparent"
+                        : "bg-white/3 border-white/5 text-mutedgray hover:text-white"
+                    }`}
+                  >
+                    {featureText.modelPublic}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRouteModelDraft((current) => ({ ...current, is_public: false }))}
+                    className={`py-2.5 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all ${
+                      !routeModelDraft.is_public
+                        ? "bg-volt text-black border-transparent"
+                        : "bg-white/3 border-white/5 text-mutedgray hover:text-white"
+                    }`}
+                  >
+                    {featureText.modelPrivate}
+                  </button>
+                </div>
+              </div>
+
+              <Button type="submit" variant="pink" isLoading={savingRouteModel}>
+                {featureText.saveModel}
+              </Button>
+            </form>
+          </Card>
+        </div>
+      )}
 
       {/* 5. PREMIUM USER PROFILE MODAL */}
       {showProfileModal && (

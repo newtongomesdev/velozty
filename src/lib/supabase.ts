@@ -1,4 +1,5 @@
 import { createClient, type User } from "@supabase/supabase-js";
+import { calculatePathDistance, haversineDistance } from "./geo";
 import { sanitizeImageUrl, sanitizeOptionalText } from "./sanitize";
 
 // Retrieve keys from environmental variables
@@ -232,6 +233,93 @@ export interface StravaConnection {
   updated_at: string;
 }
 
+export interface DashboardProgressSummary {
+  total_races: number;
+  hosted_races: number;
+  joined_races: number;
+  completed_races: number;
+  wins: number;
+  total_distance_m: number;
+  weekly_distance_m: number;
+  monthly_distance_m: number;
+  top_speed_kmh: number;
+  active_days: number;
+}
+
+export interface VeloztyRouteLibraryEntry {
+  id: string;
+  race_id: string;
+  name: string;
+  modality: Race["modality"];
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  start_address?: string | null;
+  finish_address?: string | null;
+  route_notes?: string | null;
+  scheduled_at?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  distance_m: number;
+  usage_count: number;
+  route_coords?: { lat: number; lng: number }[] | null;
+  is_public?: boolean;
+  source: "hosted" | "joined" | "saved";
+}
+
+export interface UserGoal {
+  id: string;
+  user_id: string;
+  title: string;
+  metric: "distance" | "races" | "wins";
+  target_value: number;
+  timeframe: "week" | "month" | "all";
+  modality: Race["modality"] | "all";
+  created_at: string;
+}
+
+export interface UserGoalWithProgress extends UserGoal {
+  current_value: number;
+  progress_ratio: number;
+  completed: boolean;
+}
+
+export interface UserChallenge {
+  id: string;
+  creator_user_id: string;
+  title: string;
+  metric: "distance" | "races" | "wins" | "top_speed";
+  target_value: number;
+  timeframe: "week" | "month";
+  modality: Race["modality"] | "all";
+  starts_at: string;
+  ends_at: string;
+  created_at: string;
+}
+
+export interface ChallengeEntry {
+  id: string;
+  challenge_id: string;
+  user_id: string;
+  created_at: string;
+}
+
+export interface ChallengeLeaderboardEntry {
+  user_id: string;
+  display_name: string;
+  avatar_url?: string | null;
+  score: number;
+  reached_target: boolean;
+}
+
+export interface UserChallengeWithLeaderboard extends UserChallenge {
+  leaderboard: ChallengeLeaderboardEntry[];
+  current_user_score: number;
+  current_user_joined: boolean;
+  participants_count: number;
+  created_by_current_user: boolean;
+}
+
 function requireSocialUser(currentUser?: Profile | null): Profile | null {
   return currentUser ?? null;
 }
@@ -255,7 +343,11 @@ const STORAGE_KEYS = {
   PROFILE_VOLTS: "velozty_mock_profile_volts",
   PROFILE_VOLT_LIKES: "velozty_mock_profile_volt_likes",
   NOTIFICATIONS: "velozty_mock_notifications",
-  SOCIAL_REPORTS: "velozty_mock_social_reports"
+  SOCIAL_REPORTS: "velozty_mock_social_reports",
+  USER_GOALS: "velozty_mock_user_goals",
+  USER_CHALLENGES: "velozty_mock_user_challenges",
+  CHALLENGE_ENTRIES: "velozty_mock_challenge_entries",
+  SAVED_ROUTES: "velozty_mock_saved_routes",
 };
 
 // Initial Mock Seed Data
@@ -2101,11 +2193,11 @@ export async function fetchHallOfFame(): Promise<HallOfFameEntry[]> {
   const entries = new Map<string, HallOfFameEntry>();
 
   ((awards || []) as RaceAward[]).forEach((award) => {
-    const participant = participantList.find(p => p.id === award.participant_id);
-    const race = raceList.find(r => r.id === award.race_id);
+    const participant = participantList.find((item) => item.id === award.participant_id);
+    const race = raceList.find((item) => item.id === award.race_id);
     if (!participant || !race) return;
 
-    const profile = profileList.find(p => p.id === participant.user_id);
+    const profile = profileList.find((item) => item.id === participant.user_id);
     const current = entries.get(participant.user_id) || {
       user_id: participant.user_id,
       display_name: participant.display_name,
@@ -2125,7 +2217,889 @@ export async function fetchHallOfFame(): Promise<HallOfFameEntry[]> {
     entries.set(participant.user_id, current);
   });
 
-  return [...entries.values()].sort((a, b) => b.total_wins - a.total_wins);
+  return [...entries.values()].sort((a, b) => b.total_wins - a.total_wins || new Date(b.last_win_at || 0).getTime() - new Date(a.last_win_at || 0).getTime());
+}
+
+function getTimeframeStart(timeframe: "week" | "month" | "all"): Date {
+  const now = new Date();
+  if (timeframe === "all") return new Date(0);
+  if (timeframe === "month") {
+    return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+  }
+  const mondayOffset = (now.getDay() + 6) % 7;
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - mondayOffset);
+  monday.setHours(0, 0, 0, 0);
+  return monday;
+}
+
+function getRaceReferenceDate(race: Race, participant?: RaceParticipant): Date {
+  return new Date(
+    participant?.finished_at ||
+    participant?.started_at ||
+    race.finished_at ||
+    race.started_at ||
+    race.scheduled_at ||
+    race.created_at
+  );
+}
+
+function getRouteDistanceMeters(race: Race): number {
+  if (race.route_coords && race.route_coords.length > 1) {
+    return calculatePathDistance(race.route_coords);
+  }
+  return haversineDistance(race.start_lat, race.start_lng, race.finish_lat, race.finish_lng);
+}
+
+function mapRaceDistanceByParticipant(races: Race[], positions: RacePosition[]): Map<string, number> {
+  const raceById = new Map(races.map((race) => [race.id, race]));
+  const positionsByParticipant = new Map<string, { lat: number; lng: number }[]>();
+
+  positions.forEach((position) => {
+    const current = positionsByParticipant.get(position.participant_id) || [];
+    current.push({ lat: position.lat, lng: position.lng });
+    positionsByParticipant.set(position.participant_id, current);
+  });
+
+  const result = new Map<string, number>();
+  positionsByParticipant.forEach((points, participantId) => {
+    result.set(participantId, calculatePathDistance(points));
+  });
+
+  raceById.forEach((race) => {
+    const distance = getRouteDistanceMeters(race);
+    if (!distance) return;
+    positions
+      .filter((position) => position.race_id === race.id)
+      .forEach((position) => {
+        if (!result.has(position.participant_id)) {
+          result.set(position.participant_id, distance);
+        }
+      });
+  });
+
+  return result;
+}
+
+async function getProgressDatasets() {
+  const user = await getCurrentUser();
+  if (!user) return null;
+
+  if (isUsingMock) {
+    return {
+      user,
+      races: getStored<Race[]>(STORAGE_KEYS.RACES, []),
+      participants: getStored<RaceParticipant[]>(STORAGE_KEYS.PARTICIPANTS, []),
+      positions: getStored<RacePosition[]>(STORAGE_KEYS.POSITIONS, []),
+      awards: getStored<RaceAward[]>(STORAGE_KEYS.AWARDS, []),
+      follows: getStored<SocialFollow[]>(STORAGE_KEYS.SOCIAL_FOLLOWS, defaultSocialFollows),
+      profiles: getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles),
+    };
+  }
+
+  if (!supabase) return null;
+
+  const [{ data: races }, { data: participants }, { data: positions }, { data: awards }, { data: follows }, { data: profiles }] = await Promise.all([
+    supabase.from("races").select("*"),
+    supabase.from("race_participants").select("*"),
+    supabase.from("race_positions").select("*"),
+    supabase.from("race_awards").select("*"),
+    supabase.from("social_follows").select("*"),
+    supabase.from("profiles").select("*"),
+  ]);
+
+  return {
+    user,
+    races: (races || []) as Race[],
+    participants: (participants || []) as RaceParticipant[],
+    positions: (positions || []) as RacePosition[],
+    awards: (awards || []) as RaceAward[],
+    follows: (follows || []) as SocialFollow[],
+    profiles: (profiles || []) as Profile[],
+  };
+}
+
+function calculateMetricValue(
+  metric: UserGoal["metric"] | UserChallenge["metric"],
+  timeframe: UserGoal["timeframe"] | UserChallenge["timeframe"],
+  modality: UserGoal["modality"] | UserChallenge["modality"],
+  userId: string,
+  races: Race[],
+  participants: RaceParticipant[],
+  awards: RaceAward[],
+  distanceByParticipant: Map<string, number>,
+): number {
+  const timeframeStart = getTimeframeStart(timeframe);
+  const racesById = new Map(races.map((race) => [race.id, race]));
+  const participantList = participants.filter((participant) => {
+    if (participant.user_id !== userId) return false;
+    const race = racesById.get(participant.race_id);
+    if (!race) return false;
+    if (modality !== "all" && race.modality !== modality) return false;
+    return getRaceReferenceDate(race, participant) >= timeframeStart;
+  });
+
+  if (metric === "distance") {
+    return participantList.reduce((total, participant) => total + (distanceByParticipant.get(participant.id) || getRouteDistanceMeters(racesById.get(participant.race_id)!)), 0);
+  }
+
+  if (metric === "races") {
+    return participantList.filter((participant) => participant.finished_at || participant.finish_time_ms !== null || participant.started_at).length;
+  }
+
+  if (metric === "top_speed") {
+    return participantList.reduce((max, participant) => Math.max(max, Number(participant.top_speed_kmh || 0)), 0);
+  }
+
+  const awardParticipants = new Map(participants.map((participant) => [participant.id, participant]));
+  return awards.filter((award) => {
+    if (award.award_type !== "winner") return false;
+    const participant = awardParticipants.get(award.participant_id);
+    if (!participant || participant.user_id !== userId) return false;
+    const race = racesById.get(award.race_id);
+    if (!race) return false;
+    if (modality !== "all" && race.modality !== modality) return false;
+    return getRaceReferenceDate(race, participant) >= timeframeStart;
+  }).length;
+}
+
+export async function fetchDashboardProgressSummary(): Promise<DashboardProgressSummary> {
+  const dataset = await getProgressDatasets();
+  if (!dataset) {
+    return {
+      total_races: 0,
+      hosted_races: 0,
+      joined_races: 0,
+      completed_races: 0,
+      wins: 0,
+      total_distance_m: 0,
+      weekly_distance_m: 0,
+      monthly_distance_m: 0,
+      top_speed_kmh: 0,
+      active_days: 0,
+    };
+  }
+
+  const { user, races, participants, positions, awards } = dataset;
+  const userParticipants = participants.filter((participant) => participant.user_id === user.id);
+  const raceIds = new Set(userParticipants.map((participant) => participant.race_id));
+  const relevantRaces = races.filter((race) => race.host_user_id === user.id || raceIds.has(race.id));
+  const distanceByParticipant = mapRaceDistanceByParticipant(relevantRaces, positions.filter((position) => raceIds.has(position.race_id)));
+
+  const activeDays = new Set(
+    userParticipants
+      .map((participant) => {
+        const race = relevantRaces.find((item) => item.id === participant.race_id);
+        return race ? getRaceReferenceDate(race, participant).toISOString().slice(0, 10) : null;
+      })
+      .filter(Boolean) as string[],
+  ).size;
+
+  return {
+    total_races: relevantRaces.length,
+    hosted_races: relevantRaces.filter((race) => race.host_user_id === user.id).length,
+    joined_races: relevantRaces.filter((race) => race.host_user_id !== user.id).length,
+    completed_races: userParticipants.filter((participant) => participant.finished_at || participant.finish_time_ms !== null).length,
+    wins: calculateMetricValue("wins", "all", "all", user.id, relevantRaces, userParticipants, awards, distanceByParticipant),
+    total_distance_m: calculateMetricValue("distance", "all", "all", user.id, relevantRaces, userParticipants, awards, distanceByParticipant),
+    weekly_distance_m: calculateMetricValue("distance", "week", "all", user.id, relevantRaces, userParticipants, awards, distanceByParticipant),
+    monthly_distance_m: calculateMetricValue("distance", "month", "all", user.id, relevantRaces, userParticipants, awards, distanceByParticipant),
+    top_speed_kmh: calculateMetricValue("top_speed", "all", "all", user.id, relevantRaces, userParticipants, awards, distanceByParticipant),
+    active_days: activeDays,
+  };
+}
+
+export async function fetchVeloztyRouteLibrary(): Promise<VeloztyRouteLibraryEntry[]> {
+  const user = await getCurrentUser();
+  if (!user) return [];
+
+  if (isUsingMock) {
+    return getStored<VeloztyRouteLibraryEntry[]>(STORAGE_KEYS.SAVED_ROUTES, [])
+      .filter((route) => route.id && route.source === "saved")
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  if (!supabase) return [];
+
+  try {
+    const { data, error } = await supabase
+      .from("saved_routes")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    return ((data || []) as any[]).map((route) => ({
+      id: route.id,
+      race_id: route.source_race_id || route.id,
+      name: route.name,
+      modality: route.modality,
+      city: route.city,
+      state: route.state,
+      country: route.country,
+      start_address: route.start_address,
+      finish_address: route.finish_address,
+      route_notes: route.route_notes || null,
+      scheduled_at: null,
+      created_at: route.created_at,
+      updated_at: route.updated_at || route.created_at,
+      distance_m: Number(route.distance_m || 0),
+      usage_count: Number(route.usage_count || 0),
+      route_coords: Array.isArray(route.route_geojson) ? route.route_geojson : null,
+      is_public: Boolean(route.is_public),
+      source: "saved" as const,
+    }));
+  } catch {
+    return getStored<VeloztyRouteLibraryEntry[]>(STORAGE_KEYS.SAVED_ROUTES, [])
+      .filter((route) => route.id && route.source === "saved")
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+}
+
+function mapSavedRouteRecord(route: any): VeloztyRouteLibraryEntry {
+  return {
+    id: route.id,
+    race_id: route.source_race_id || route.id,
+    name: route.name,
+    modality: route.modality,
+    city: route.city,
+    state: route.state,
+    country: route.country,
+    start_address: route.start_address,
+    finish_address: route.finish_address,
+    route_notes: route.route_notes || null,
+    scheduled_at: null,
+    created_at: route.created_at,
+    updated_at: route.updated_at || route.created_at,
+    distance_m: Number(route.distance_m || 0),
+    usage_count: Number(route.usage_count || 0),
+    route_coords: Array.isArray(route.route_geojson) ? route.route_geojson : null,
+    is_public: Boolean(route.is_public),
+    source: "saved",
+  };
+}
+
+export async function fetchRouteTemplateById(routeId: string): Promise<VeloztyRouteLibraryEntry | null> {
+  const user = await getCurrentUser();
+
+  if (isUsingMock) {
+    const routes = getStored<VeloztyRouteLibraryEntry[]>(STORAGE_KEYS.SAVED_ROUTES, []);
+    return routes.find((route) => route.id === routeId && (route.is_public || route.source === "saved")) || null;
+  }
+
+  if (!supabase) return null;
+
+  try {
+    let query = supabase
+      .from("saved_routes")
+      .select("*")
+      .eq("id", routeId)
+      .limit(1);
+
+    if (user?.id) {
+      query = query.or(`is_public.eq.true,user_id.eq.${user.id}`);
+    } else {
+      query = query.eq("is_public", true);
+    }
+
+    const { data, error } = await query.maybeSingle();
+    if (error || !data) return null;
+    return mapSavedRouteRecord(data);
+  } catch {
+    const routes = getStored<VeloztyRouteLibraryEntry[]>(STORAGE_KEYS.SAVED_ROUTES, []);
+    return routes.find((route) => route.id === routeId && route.is_public) || null;
+  }
+}
+
+export async function fetchPublicRouteGallery(filters?: {
+  city?: string;
+  modality?: Race["modality"] | "all";
+  query?: string;
+}): Promise<VeloztyRouteLibraryEntry[]> {
+  const cityFilter = sanitizeOptionalText(filters?.city || null, 80)?.toLowerCase() || "";
+  const textFilter = sanitizeOptionalText(filters?.query || null, 80)?.toLowerCase() || "";
+  const modalityFilter = filters?.modality || "all";
+
+  if (isUsingMock) {
+    return getStored<VeloztyRouteLibraryEntry[]>(STORAGE_KEYS.SAVED_ROUTES, [])
+      .filter((route) => route.is_public)
+      .filter((route) => modalityFilter === "all" || route.modality === modalityFilter)
+      .filter((route) => !cityFilter || (route.city || "").toLowerCase().includes(cityFilter))
+      .filter((route) => !textFilter || [route.name, route.route_notes, route.start_address, route.finish_address].some((value) => (value || "").toLowerCase().includes(textFilter)))
+      .sort((a, b) => new Date(b.updated_at || b.created_at).getTime() - new Date(a.updated_at || a.created_at).getTime());
+  }
+
+  if (!supabase) return [];
+
+  try {
+    let query = supabase
+      .from("saved_routes")
+      .select("*")
+      .eq("is_public", true)
+      .order("updated_at", { ascending: false })
+      .limit(24);
+
+    if (modalityFilter !== "all") {
+      query = query.eq("modality", modalityFilter);
+    }
+
+    if (cityFilter) {
+      query = query.ilike("city", `%${cityFilter}%`);
+    }
+
+    if (textFilter) {
+      query = query.or(`name.ilike.%${textFilter}%,route_notes.ilike.%${textFilter}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return ((data || []) as any[]).map(mapSavedRouteRecord);
+  } catch {
+    return [];
+  }
+}
+
+export async function saveRouteToLibrary(raceId: string): Promise<VeloztyRouteLibraryEntry> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const race = await fetchRaceById(raceId);
+  if (!race) throw new Error("Race not found");
+
+  const entryPayload: VeloztyRouteLibraryEntry = {
+    id: `saved-route-${race.id}`,
+    race_id: race.id,
+    name: race.name,
+    modality: race.modality,
+    city: race.city,
+    state: race.state,
+    country: race.country,
+    start_address: race.start_address || race.address || null,
+    finish_address: race.finish_address || null,
+    route_notes: race.location_notes || null,
+    scheduled_at: race.scheduled_at || null,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    distance_m: getRouteDistanceMeters(race),
+    usage_count: 1,
+    route_coords: race.route_coords || null,
+    is_public: false,
+    source: "saved",
+  };
+
+  if (isUsingMock) {
+    const savedRoutes = getStored<VeloztyRouteLibraryEntry[]>(STORAGE_KEYS.SAVED_ROUTES, []);
+    const existing = savedRoutes.find((route) => route.race_id === race.id);
+    if (existing) return existing;
+    const nextRoutes = [entryPayload, ...savedRoutes];
+    setStored(STORAGE_KEYS.SAVED_ROUTES, nextRoutes);
+    return entryPayload;
+  }
+
+  if (!supabase) throw new Error("Supabase offline");
+
+  try {
+    const { data: existing, error: existingError } = await supabase
+      .from("saved_routes")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("source_race_id", race.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+
+    if (existing) {
+      return {
+        id: existing.id,
+        race_id: existing.source_race_id || existing.id,
+        name: existing.name,
+        modality: existing.modality,
+        city: existing.city,
+        state: existing.state,
+        country: existing.country,
+        start_address: existing.start_address,
+        finish_address: existing.finish_address,
+        route_notes: existing.route_notes || null,
+        scheduled_at: null,
+        created_at: existing.created_at,
+        updated_at: existing.updated_at || existing.created_at,
+        distance_m: Number(existing.distance_m || 0),
+        usage_count: Number(existing.usage_count || 0),
+        route_coords: Array.isArray(existing.route_geojson) ? existing.route_geojson : null,
+        is_public: Boolean(existing.is_public),
+        source: "saved",
+      };
+    }
+
+    const { data, error } = await supabase
+      .from("saved_routes")
+      .insert([{
+        user_id: user.id,
+        source_race_id: race.id,
+        name: race.name,
+        modality: race.modality,
+        city: race.city,
+        state: race.state,
+        country: race.country || null,
+        start_address: race.start_address || race.address || null,
+        finish_address: race.finish_address || null,
+        route_notes: race.location_notes || null,
+        distance_m: getRouteDistanceMeters(race),
+        route_geojson: race.route_coords || null,
+        usage_count: 1,
+        is_public: false,
+      }])
+      .select("*")
+      .single();
+
+    if (error || !data) throw new Error(error?.message || "Failed to save route");
+
+    return {
+      id: data.id,
+      race_id: data.source_race_id || data.id,
+      name: data.name,
+      modality: data.modality,
+      city: data.city,
+      state: data.state,
+      country: data.country,
+      start_address: data.start_address,
+      finish_address: data.finish_address,
+      route_notes: data.route_notes || null,
+      scheduled_at: null,
+      created_at: data.created_at,
+      updated_at: data.updated_at || data.created_at,
+      distance_m: Number(data.distance_m || 0),
+      usage_count: Number(data.usage_count || 0),
+      route_coords: Array.isArray(data.route_geojson) ? data.route_geojson : null,
+      is_public: Boolean(data.is_public),
+      source: "saved",
+    };
+  } catch {
+    const savedRoutes = getStored<VeloztyRouteLibraryEntry[]>(STORAGE_KEYS.SAVED_ROUTES, []);
+    const existing = savedRoutes.find((route) => route.race_id === race.id);
+    if (existing) return existing;
+    const nextRoutes = [entryPayload, ...savedRoutes];
+    setStored(STORAGE_KEYS.SAVED_ROUTES, nextRoutes);
+    return entryPayload;
+  }
+}
+
+export async function updateSavedRouteModel(
+  routeId: string,
+  input: {
+    name: string;
+    route_notes?: string | null;
+    is_public: boolean;
+  },
+): Promise<VeloztyRouteLibraryEntry> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const payload = {
+    name: sanitizeOptionalText(input.name, 80) || "Rota Velozty",
+    route_notes: sanitizeOptionalText(input.route_notes || null, 240),
+    is_public: Boolean(input.is_public),
+  };
+
+  if (isUsingMock) {
+    const routes = getStored<VeloztyRouteLibraryEntry[]>(STORAGE_KEYS.SAVED_ROUTES, []);
+    const existing = routes.find((route) => route.id === routeId);
+    if (!existing) throw new Error("Saved route not found");
+    const updated: VeloztyRouteLibraryEntry = {
+      ...existing,
+      ...payload,
+      updated_at: new Date().toISOString(),
+    };
+    setStored(
+      STORAGE_KEYS.SAVED_ROUTES,
+      routes.map((route) => (route.id === routeId ? updated : route)),
+    );
+    return updated;
+  }
+
+  if (!supabase) throw new Error("Supabase offline");
+
+  try {
+    const { data, error } = await supabase
+      .from("saved_routes")
+      .update(payload)
+      .eq("id", routeId)
+      .eq("user_id", user.id)
+      .select("*")
+      .single();
+
+    if (error || !data) throw new Error(error?.message || "Failed to update saved route");
+
+    return {
+      id: data.id,
+      race_id: data.source_race_id || data.id,
+      name: data.name,
+      modality: data.modality,
+      city: data.city,
+      state: data.state,
+      country: data.country,
+      start_address: data.start_address,
+      finish_address: data.finish_address,
+      route_notes: data.route_notes || null,
+      scheduled_at: null,
+      created_at: data.created_at,
+      updated_at: data.updated_at || data.created_at,
+      distance_m: Number(data.distance_m || 0),
+      usage_count: Number(data.usage_count || 0),
+      route_coords: Array.isArray(data.route_geojson) ? data.route_geojson : null,
+      is_public: Boolean(data.is_public),
+      source: "saved",
+    };
+  } catch {
+    const routes = getStored<VeloztyRouteLibraryEntry[]>(STORAGE_KEYS.SAVED_ROUTES, []);
+    const existing = routes.find((route) => route.id === routeId);
+    if (!existing) throw new Error("Saved route not found");
+    const updated: VeloztyRouteLibraryEntry = {
+      ...existing,
+      ...payload,
+      updated_at: new Date().toISOString(),
+    };
+    setStored(
+      STORAGE_KEYS.SAVED_ROUTES,
+      routes.map((route) => (route.id === routeId ? updated : route)),
+    );
+    return updated;
+  }
+}
+
+export async function deleteSavedRoute(routeId: string): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  if (isUsingMock) {
+    setStored(
+      STORAGE_KEYS.SAVED_ROUTES,
+      getStored<VeloztyRouteLibraryEntry[]>(STORAGE_KEYS.SAVED_ROUTES, []).filter((route) => route.id !== routeId),
+    );
+    return;
+  }
+
+  if (!supabase) throw new Error("Supabase offline");
+
+  try {
+    const { error } = await supabase
+      .from("saved_routes")
+      .delete()
+      .eq("id", routeId)
+      .eq("user_id", user.id);
+    if (error) throw error;
+  } catch {
+    setStored(
+      STORAGE_KEYS.SAVED_ROUTES,
+      getStored<VeloztyRouteLibraryEntry[]>(STORAGE_KEYS.SAVED_ROUTES, []).filter((route) => route.id !== routeId),
+    );
+  }
+}
+
+export async function fetchUserGoals(): Promise<UserGoalWithProgress[]> {
+  const dataset = await getProgressDatasets();
+  if (!dataset) return [];
+
+  const { user, races, participants, positions, awards } = dataset;
+  const distanceByParticipant = mapRaceDistanceByParticipant(races, positions);
+
+  let goals: UserGoal[] = [];
+  if (isUsingMock) {
+    goals = getStored<UserGoal[]>(STORAGE_KEYS.USER_GOALS, []);
+  } else if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from("user_goals")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      goals = (data || []) as UserGoal[];
+    } catch {
+      goals = getStored<UserGoal[]>(STORAGE_KEYS.USER_GOALS, []).filter((goal) => goal.user_id === user.id);
+    }
+  }
+
+  return goals
+    .filter((goal) => goal.user_id === user.id)
+    .map((goal) => {
+      const currentValue = calculateMetricValue(goal.metric, goal.timeframe, goal.modality, user.id, races, participants, awards, distanceByParticipant);
+      const ratio = goal.target_value > 0 ? Math.min(currentValue / goal.target_value, 1) : 0;
+      return {
+        ...goal,
+        current_value: currentValue,
+        progress_ratio: ratio,
+        completed: currentValue >= goal.target_value,
+      };
+    });
+}
+
+export async function createUserGoal(input: Omit<UserGoal, "id" | "user_id" | "created_at">): Promise<UserGoal> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const payload = {
+    title: sanitizeOptionalText(input.title, 60) || "Meta Velozty",
+    metric: input.metric,
+    target_value: Number(input.target_value),
+    timeframe: input.timeframe,
+    modality: input.modality,
+  };
+
+  if (isUsingMock) {
+    const goals = getStored<UserGoal[]>(STORAGE_KEYS.USER_GOALS, []);
+    const goal: UserGoal = {
+      id: `goal-${Date.now()}`,
+      user_id: user.id,
+      created_at: new Date().toISOString(),
+      ...payload,
+    };
+    goals.unshift(goal);
+    setStored(STORAGE_KEYS.USER_GOALS, goals);
+    return goal;
+  }
+
+  if (!supabase) throw new Error("Supabase offline");
+  try {
+    const { data, error } = await supabase
+      .from("user_goals")
+      .insert([{ user_id: user.id, ...payload }])
+      .select()
+      .single();
+    if (error || !data) throw new Error(error?.message || "Failed to create goal");
+    return data as UserGoal;
+  } catch {
+    const goals = getStored<UserGoal[]>(STORAGE_KEYS.USER_GOALS, []);
+    const goal: UserGoal = {
+      id: `goal-${Date.now()}`,
+      user_id: user.id,
+      created_at: new Date().toISOString(),
+      ...payload,
+    };
+    goals.unshift(goal);
+    setStored(STORAGE_KEYS.USER_GOALS, goals);
+    return goal;
+  }
+}
+
+export async function deleteUserGoal(goalId: string): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  if (isUsingMock) {
+    const goals = getStored<UserGoal[]>(STORAGE_KEYS.USER_GOALS, []).filter((goal) => !(goal.id === goalId && goal.user_id === user.id));
+    setStored(STORAGE_KEYS.USER_GOALS, goals);
+    return;
+  }
+
+  if (!supabase) throw new Error("Supabase offline");
+  try {
+    const { error } = await supabase.from("user_goals").delete().eq("id", goalId).eq("user_id", user.id);
+    if (error) throw error;
+  } catch {
+    const goals = getStored<UserGoal[]>(STORAGE_KEYS.USER_GOALS, []).filter((goal) => !(goal.id === goalId && goal.user_id === user.id));
+    setStored(STORAGE_KEYS.USER_GOALS, goals);
+  }
+}
+
+export async function fetchUserChallenges(): Promise<UserChallengeWithLeaderboard[]> {
+  const dataset = await getProgressDatasets();
+  if (!dataset) return [];
+
+  const { user, races, participants, positions, awards, follows, profiles } = dataset;
+  const distanceByParticipant = mapRaceDistanceByParticipant(races, positions);
+
+  let challenges: UserChallenge[] = [];
+  let entries: ChallengeEntry[] = [];
+  if (isUsingMock) {
+    challenges = getStored<UserChallenge[]>(STORAGE_KEYS.USER_CHALLENGES, []);
+    entries = getStored<ChallengeEntry[]>(STORAGE_KEYS.CHALLENGE_ENTRIES, []);
+  } else if (supabase) {
+    try {
+      const { data, error } = await supabase
+        .from("user_challenges")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      challenges = (data || []) as UserChallenge[];
+
+      const challengeIds = challenges.map((challenge) => challenge.id);
+      if (challengeIds.length > 0) {
+        const { data: entryData, error: entryError } = await supabase
+          .from("challenge_entries")
+          .select("*")
+          .in("challenge_id", challengeIds);
+        if (entryError) throw entryError;
+        entries = (entryData || []) as ChallengeEntry[];
+      }
+    } catch {
+      challenges = getStored<UserChallenge[]>(STORAGE_KEYS.USER_CHALLENGES, []);
+      entries = getStored<ChallengeEntry[]>(STORAGE_KEYS.CHALLENGE_ENTRIES, []);
+    }
+  }
+
+  const visibleUserIds = new Set<string>([user.id]);
+  follows.forEach((follow) => {
+    if (follow.follower_id === user.id) visibleUserIds.add(follow.following_id);
+    if (follow.following_id === user.id) visibleUserIds.add(follow.follower_id);
+  });
+
+  return challenges.map((challenge) => {
+    const participantIds = new Set(
+      entries
+        .filter((entry) => entry.challenge_id === challenge.id)
+        .map((entry) => entry.user_id),
+    );
+    participantIds.add(challenge.creator_user_id);
+
+    const leaderboard = profiles
+      .filter((profile) => visibleUserIds.has(profile.id) && participantIds.has(profile.id))
+      .map((profile) => {
+        const score = calculateMetricValue(challenge.metric, challenge.timeframe, challenge.modality, profile.id, races, participants, awards, distanceByParticipant);
+        return {
+          user_id: profile.id,
+          display_name: profile.display_name,
+          avatar_url: profile.avatar_url || null,
+          score,
+          reached_target: score >= challenge.target_value,
+        };
+      })
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5);
+
+    return {
+      ...challenge,
+      leaderboard,
+      current_user_score: leaderboard.find((entry) => entry.user_id === user.id)?.score || 0,
+      current_user_joined: participantIds.has(user.id),
+      participants_count: participantIds.size,
+      created_by_current_user: challenge.creator_user_id === user.id,
+    };
+  });
+}
+
+export async function createUserChallenge(input: Omit<UserChallenge, "id" | "creator_user_id" | "starts_at" | "ends_at" | "created_at">): Promise<UserChallenge> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const now = new Date();
+  const endsAt = new Date(now);
+  if (input.timeframe === "week") {
+    endsAt.setDate(endsAt.getDate() + 7);
+  } else {
+    endsAt.setMonth(endsAt.getMonth() + 1);
+  }
+
+  const payload = {
+    title: sanitizeOptionalText(input.title, 60) || "Desafio Velozty",
+    metric: input.metric,
+    target_value: Number(input.target_value),
+    timeframe: input.timeframe,
+    modality: input.modality,
+    starts_at: now.toISOString(),
+    ends_at: endsAt.toISOString(),
+  };
+
+  if (isUsingMock) {
+    const challenges = getStored<UserChallenge[]>(STORAGE_KEYS.USER_CHALLENGES, []);
+    const challenge: UserChallenge = {
+      id: `challenge-${Date.now()}`,
+      creator_user_id: user.id,
+      created_at: now.toISOString(),
+      ...payload,
+    };
+    challenges.unshift(challenge);
+    setStored(STORAGE_KEYS.USER_CHALLENGES, challenges);
+    const entries = getStored<ChallengeEntry[]>(STORAGE_KEYS.CHALLENGE_ENTRIES, []);
+    entries.unshift({
+      id: `challenge-entry-${Date.now()}`,
+      challenge_id: challenge.id,
+      user_id: user.id,
+      created_at: now.toISOString(),
+    });
+    setStored(STORAGE_KEYS.CHALLENGE_ENTRIES, entries);
+    return challenge;
+  }
+
+  if (!supabase) throw new Error("Supabase offline");
+  try {
+    const { data, error } = await supabase
+      .from("user_challenges")
+      .insert([{ creator_user_id: user.id, created_at: now.toISOString(), ...payload }])
+      .select()
+      .single();
+    if (error || !data) throw new Error(error?.message || "Failed to create challenge");
+    await supabase.from("challenge_entries").insert([{ challenge_id: data.id, user_id: user.id }]);
+    return data as UserChallenge;
+  } catch {
+    const challenges = getStored<UserChallenge[]>(STORAGE_KEYS.USER_CHALLENGES, []);
+    const challenge: UserChallenge = {
+      id: `challenge-${Date.now()}`,
+      creator_user_id: user.id,
+      created_at: now.toISOString(),
+      ...payload,
+    };
+    challenges.unshift(challenge);
+    setStored(STORAGE_KEYS.USER_CHALLENGES, challenges);
+    const entries = getStored<ChallengeEntry[]>(STORAGE_KEYS.CHALLENGE_ENTRIES, []);
+    entries.unshift({
+      id: `challenge-entry-${Date.now()}`,
+      challenge_id: challenge.id,
+      user_id: user.id,
+      created_at: now.toISOString(),
+    });
+    setStored(STORAGE_KEYS.CHALLENGE_ENTRIES, entries);
+    return challenge;
+  }
+}
+
+export async function joinUserChallenge(challengeId: string): Promise<void> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  if (isUsingMock) {
+    const entries = getStored<ChallengeEntry[]>(STORAGE_KEYS.CHALLENGE_ENTRIES, []);
+    if (entries.some((entry) => entry.challenge_id === challengeId && entry.user_id === user.id)) return;
+    entries.unshift({
+      id: `challenge-entry-${Date.now()}`,
+      challenge_id: challengeId,
+      user_id: user.id,
+      created_at: new Date().toISOString(),
+    });
+    setStored(STORAGE_KEYS.CHALLENGE_ENTRIES, entries);
+    return;
+  }
+
+  if (!supabase) throw new Error("Supabase offline");
+
+  try {
+    const { data: existing, error: existingError } = await supabase
+      .from("challenge_entries")
+      .select("id")
+      .eq("challenge_id", challengeId)
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+    if (existingError) throw existingError;
+    if (existing) return;
+
+    const { error } = await supabase
+      .from("challenge_entries")
+      .insert([{ challenge_id: challengeId, user_id: user.id }]);
+    if (error) throw error;
+  } catch {
+    const entries = getStored<ChallengeEntry[]>(STORAGE_KEYS.CHALLENGE_ENTRIES, []);
+    if (entries.some((entry) => entry.challenge_id === challengeId && entry.user_id === user.id)) return;
+    entries.unshift({
+      id: `challenge-entry-${Date.now()}`,
+      challenge_id: challengeId,
+      user_id: user.id,
+      created_at: new Date().toISOString(),
+    });
+    setStored(STORAGE_KEYS.CHALLENGE_ENTRIES, entries);
+  }
 }
 
 export async function fetchSocialFeed(currentUser?: Profile | null): Promise<SocialPost[]> {

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useToast } from "../components/ui/Toast";
 import { Button } from "../components/ui/Button";
 import { Card, CardTitle } from "../components/ui/Card";
 import { LeafletMap } from "../components/race/LeafletMap";
 import { useI18n } from "../components/i18n/I18nProvider";
-import { createRace, fetchRaceById, updateRace } from "../lib/supabase";
+import { createRace, fetchRaceById, fetchRouteTemplateById, fetchVeloztyRouteLibrary, type VeloztyRouteLibraryEntry, updateRace } from "../lib/supabase";
 import { logger } from "../lib/logger";
 import { z } from "zod";
 import { ArrowLeft, MapPin, Milestone, RotateCcw, HelpCircle, Navigation, Eye, EyeOff, CalendarClock, MapPinned, StickyNote } from "lucide-react";
@@ -42,6 +42,7 @@ const toDatetimeLocal = (value?: string | null) => {
 export const CreateRace: React.FC = () => {
   const navigate = useNavigate();
   const { id: raceId } = useParams();
+  const [searchParams] = useSearchParams();
   const { showToast } = useToast();
   const { t } = useI18n();
   const isEditing = Boolean(raceId);
@@ -68,6 +69,38 @@ export const CreateRace: React.FC = () => {
   const [mapCenter, setMapCenter] = useState<{ lat: number; lng: number }>({ lat: -23.55052, lng: -46.633308 });
   const [loading, setLoading] = useState(false);
   const [loadingRace, setLoadingRace] = useState(false);
+  const [savedRoutes, setSavedRoutes] = useState<VeloztyRouteLibraryEntry[]>([]);
+  const [selectedSavedRouteId, setSelectedSavedRouteId] = useState("");
+  const [loadingSavedRoutes, setLoadingSavedRoutes] = useState(false);
+
+  const applySavedRoute = (savedRoute: VeloztyRouteLibraryEntry) => {
+    const coords = savedRoute.route_coords || [];
+    const start = coords[0] || null;
+    const finish = coords.length > 1 ? coords[coords.length - 1] : null;
+
+    setSelectedSavedRouteId(savedRoute.id);
+    setName((current) => current || savedRoute.name);
+    setModality(savedRoute.modality);
+    setCity(savedRoute.city || "");
+    setStateVal(savedRoute.state || "");
+    setStartAddress(savedRoute.start_address || "");
+    setFinishAddress(savedRoute.finish_address || "");
+    setLocationNotes(savedRoute.route_notes || "");
+    setNeighborhood("");
+    setWaypoints([]);
+    setRouteCoords(coords);
+
+    if (start) {
+      setStartPoint(start);
+      setMapCenter(start);
+    }
+
+    if (finish) {
+      setFinishPoint(finish);
+    }
+
+    showToast(t("createRace.savedRouteApplied"), "success");
+  };
 
   // Auto-center map on user's current GPS position on mount
   useEffect(() => {
@@ -84,6 +117,30 @@ export const CreateRace: React.FC = () => {
       );
     }
   }, []);
+
+  useEffect(() => {
+    const loadSavedRoutes = async () => {
+      setLoadingSavedRoutes(true);
+      try {
+        const routes = await fetchVeloztyRouteLibrary();
+        setSavedRoutes(routes);
+
+        const presetRouteId = searchParams.get("savedRoute");
+        if (presetRouteId) {
+          const presetRoute = routes.find((route) => route.id === presetRouteId) || await fetchRouteTemplateById(presetRouteId);
+          if (presetRoute && !isEditing) {
+            applySavedRoute(presetRoute);
+          }
+        }
+      } catch (err) {
+        logger.warn("Could not load saved routes:", err);
+      } finally {
+        setLoadingSavedRoutes(false);
+      }
+    };
+
+    loadSavedRoutes();
+  }, [searchParams, isEditing]);
 
   useEffect(() => {
     if (!raceId) return;
@@ -378,6 +435,60 @@ export const CreateRace: React.FC = () => {
           
           <Card glow="volt" className="flex-1 flex flex-col gap-4">
             <CardTitle className="text-sm">{t("createRace.telemetrySetup")}</CardTitle>
+
+            {!isEditing && (
+              <div className="flex flex-col gap-2 rounded-2xl border border-white/8 bg-white/3 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-[9px] font-black uppercase tracking-widest text-volt">{t("createRace.savedRoutes")}</div>
+                    <p className="mt-1 text-[10px] font-semibold leading-relaxed text-mutedgray">
+                      {t("createRace.savedRoutesHelp")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <select
+                    value={selectedSavedRouteId}
+                    onChange={(e) => {
+                      const nextRoute = savedRoutes.find((route) => route.id === e.target.value);
+                      if (nextRoute) applySavedRoute(nextRoute);
+                      else setSelectedSavedRouteId("");
+                    }}
+                    className="profile-select px-3.5 py-3 border rounded-xl text-xs font-semibold focus:outline-none focus:border-volt cursor-pointer appearance-none font-sans"
+                  >
+                    <option value="">{loadingSavedRoutes ? t("createRace.loadingSavedRoutes") : t("createRace.selectSavedRoute")}</option>
+                    {savedRoutes.map((route) => (
+                      <option key={route.id} value={route.id}>
+                        {route.name} • {route.city || "-"} • {Math.round(route.distance_m / 1000 * 10) / 10} km
+                      </option>
+                    ))}
+                  </select>
+
+                  {savedRoutes.length > 0 && (
+                    <div className="grid gap-2">
+                      {savedRoutes.slice(0, 3).map((route) => (
+                        <button
+                          key={route.id}
+                          type="button"
+                          onClick={() => applySavedRoute(route)}
+                          className={`rounded-xl border px-3 py-2 text-left transition-all ${
+                            selectedSavedRouteId === route.id
+                              ? "border-volt/40 bg-volt/10"
+                              : "border-white/8 bg-black/20 hover:border-volt/25"
+                          }`}
+                        >
+                          <div className="text-[10px] font-black uppercase tracking-wider text-white">{route.name}</div>
+                          <div className="mt-1 text-[10px] font-semibold text-mutedgray">
+                            {(route.city || t("createRace.noCity"))} • {Math.round(route.distance_m / 1000 * 10) / 10} km
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Race Name */}
             <div className="flex flex-col gap-1.5">
