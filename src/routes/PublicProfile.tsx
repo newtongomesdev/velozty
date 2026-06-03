@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Clock, Flame, Globe, Heart, ImagePlus, Link as LinkIcon, MapPin, MessageCircle, UserMinus, UserPlus, X } from "lucide-react";
+import { ArrowLeft, Clock, Flame, Globe, Heart, ImagePlus, Link as LinkIcon, MapPin, MessageCircle, UserMinus, UserPlus, X, Flag } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -22,6 +22,7 @@ import {
   type SocialProfile,
 } from "../lib/supabase";
 import { sanitizeImageUrl, sanitizeUrl } from "../lib/sanitize";
+import { ReportModal } from "../components/ui/ReportModal";
 
 const PublicProfile: React.FC = () => {
   const { id } = useParams();
@@ -39,6 +40,7 @@ const PublicProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const profilePhotoInputRef = useRef<HTMLInputElement>(null);
   const voltInputRef = useRef<HTMLInputElement>(null);
+  const [reportModal, setReportModal] = useState<{isOpen: boolean, targetType: "post"|"comment"|"volt"|"profile", targetId: string}>({isOpen: false, targetType: "profile", targetId: ""});
 
   const loadProfile = async () => {
     if (!id) return;
@@ -202,10 +204,20 @@ const PublicProfile: React.FC = () => {
               </div>
 
               {!isOwnProfile && (
-                <Button type="button" variant={profile.is_following ? "glass" : "volt"} onClick={handleToggleFollow} className="gap-2 text-xs">
-                  {profile.is_following ? <UserMinus className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
-                  {profile.is_following ? t("social.unfollow") : t("social.follow")}
-                </Button>
+                <div className="flex gap-2 items-center">
+                  <Button type="button" variant={profile.is_following ? "glass" : "volt"} onClick={handleToggleFollow} className="gap-2 text-xs">
+                    {profile.is_following ? <UserMinus className="h-4 w-4" /> : <UserPlus className="h-4 w-4" />}
+                    {profile.is_following ? t("social.unfollow") : t("social.follow")}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setReportModal({ isOpen: true, targetType: "profile", targetId: profile.id })}
+                    className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-mutedgray hover:text-rose-500 hover:bg-rose-500/10 hover:border-rose-500 transition-colors"
+                    title={t("report.reportAction")}
+                  >
+                    <Flag className="h-4 w-4" />
+                  </button>
+                </div>
               )}
             </section>
 
@@ -434,11 +446,31 @@ const PublicProfile: React.FC = () => {
                   <Heart className={`h-4 w-4 ${selectedVolt.liked_by_current_user ? "fill-hyperpink text-hyperpink" : "text-white"}`} />
                   <span className="font-bold">{selectedVolt.likes_count || 0}</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setReportModal({ isOpen: true, targetType: "volt", targetId: selectedVolt.id });
+                  }}
+                  className="ml-auto flex items-center justify-center rounded-xl bg-white/5 border border-white/10 p-2 text-white hover:bg-rose-500 hover:border-rose-500 transition-colors"
+                  title={t("report.reportAction")}
+                >
+                  <Flag className="h-4 w-4" />
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      <ReportModal
+        isOpen={reportModal.isOpen}
+        onClose={() => setReportModal(prev => ({ ...prev, isOpen: false }))}
+        reporterId={currentUser?.id || ""}
+        targetType={reportModal.targetType}
+        targetId={reportModal.targetId}
+        onSuccess={() => showToast(t("report.success") || "Denúncia enviada.", "success")}
+      />
     </div>
   );
 };

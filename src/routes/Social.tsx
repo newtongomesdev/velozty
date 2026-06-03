@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Clock, Heart, ImagePlus, MessageCircle, RefreshCw, Search, Send, UserMinus, UserPlus, Users, X } from "lucide-react";
+import { ArrowLeft, Clock, Heart, ImagePlus, MessageCircle, RefreshCw, Search, Send, UserMinus, UserPlus, Users, X, Flag } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Card, CardTitle } from "../components/ui/Card";
 import { useToast } from "../components/ui/Toast";
@@ -25,6 +25,7 @@ import {
   type ProfileVolt,
 } from "../lib/supabase";
 import { sanitizeImageUrl } from "../lib/sanitize";
+import { ReportModal } from "../components/ui/ReportModal";
 
 const formatPostTime = (date: string) => new Intl.DateTimeFormat(undefined, {
   day: "2-digit",
@@ -84,6 +85,7 @@ const Social: React.FC = () => {
   const [activeVoltsUserIds, setActiveVoltsUserIds] = useState<Set<string>>(new Set());
   const [selectedVolt, setSelectedVolt] = useState<ProfileVolt | null>(null);
   const [selectedVoltProfile, setSelectedVoltProfile] = useState<{ display_name: string; id: string } | null>(null);
+  const [reportModal, setReportModal] = useState<{isOpen: boolean, targetType: "post"|"comment"|"volt"|"profile", targetId: string}>({isOpen: false, targetType: "post", targetId: ""});
 
   const loadSocialData = useCallback(async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -540,6 +542,14 @@ const Social: React.FC = () => {
                         </button>
                         <span className="text-[9px] font-mono text-mutedgray uppercase">{formatPostTime(post.created_at)}</span>
                       </div>
+                      <button
+                        type="button"
+                        onClick={() => setReportModal({ isOpen: true, targetType: "post", targetId: post.id })}
+                        className="text-mutedgray hover:text-rose-500 p-1 rounded-full transition-colors"
+                        title={t("report.reportAction")}
+                      >
+                        <Flag className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                     <p className="social-readable-muted mt-2 text-sm leading-relaxed whitespace-pre-wrap">{renderWithMentions(post.content)}</p>
                     {sanitizeImageUrl(post.image_url) && (
@@ -592,6 +602,14 @@ const Social: React.FC = () => {
                                   {comment.display_name}
                                 </button>
                                 <span className="text-[8px] font-mono text-mutedgray uppercase">{formatPostTime(comment.created_at)}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => setReportModal({ isOpen: true, targetType: "comment", targetId: comment.id })}
+                                  className="ml-auto text-mutedgray hover:text-rose-500 transition-colors"
+                                  title={t("report.reportAction")}
+                                >
+                                  <Flag className="h-2.5 w-2.5" />
+                                </button>
                               </div>
                               <p className="social-readable-muted text-[12px] leading-snug">{renderWithMentions(comment.content)}</p>
                               <button
@@ -814,14 +832,33 @@ const Social: React.FC = () => {
                   <Heart className={`h-4 w-4 ${selectedVolt.liked_by_current_user ? "fill-hyperpink text-hyperpink" : "text-white"}`} />
                   <span className="font-bold">{selectedVolt.likes_count || 0}</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setReportModal({ isOpen: true, targetType: "volt", targetId: selectedVolt.id });
+                  }}
+                  className="ml-auto flex items-center justify-center rounded-xl bg-white/5 border border-white/10 p-2 text-white hover:bg-rose-500 hover:border-rose-500 transition-colors"
+                  title={t("report.reportAction")}
+                >
+                  <Flag className="h-4 w-4" />
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+      <ReportModal
+        isOpen={reportModal.isOpen}
+        onClose={() => setReportModal(prev => ({ ...prev, isOpen: false }))}
+        reporterId={user?.id || ""}
+        targetType={reportModal.targetType}
+        targetId={reportModal.targetId}
+        onSuccess={() => showToast(t("report.success") || "Denúncia enviada.", "success")}
+      />
     </div>
   );
 };
 
 export default Social;
-

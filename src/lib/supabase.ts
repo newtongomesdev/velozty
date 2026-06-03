@@ -200,6 +200,16 @@ export interface ProfileVoltLike {
   created_at: string;
 }
 
+export interface AppReport {
+  id: string;
+  reporter_id: string;
+  target_type: "post" | "comment" | "volt" | "profile";
+  target_id: string;
+  reason: string;
+  status: "pending" | "reviewed" | "dismissed" | "acted";
+  created_at: string;
+}
+
 export interface AppNotification {
   id: string;
   user_id: string;
@@ -244,7 +254,8 @@ const STORAGE_KEYS = {
   PROFILE_PHOTOS: "velozty_mock_profile_photos",
   PROFILE_VOLTS: "velozty_mock_profile_volts",
   PROFILE_VOLT_LIKES: "velozty_mock_profile_volt_likes",
-  NOTIFICATIONS: "velozty_mock_notifications"
+  NOTIFICATIONS: "velozty_mock_notifications",
+  SOCIAL_REPORTS: "velozty_mock_social_reports"
 };
 
 // Initial Mock Seed Data
@@ -478,57 +489,25 @@ export const RESERVED_USERNAMES = new Set([
   "hostmaster",
   
   // Code / system keywords
-  "null",
-  "undefined",
-  "nan",
-  "void",
-  "true",
-  "false",
-  "none",
-  "test",
-  "guest",
-  "user",
-  "users",
-  "profile",
-  "profiles",
-  "auth",
-  "db",
-  "database",
-  "feed",
-  "post",
-  "posts",
-  "comment",
-  "comments",
-  "like",
-  "likes",
-  "share",
-  "shares",
-  "follow",
-  "follower",
-  "followers",
-  "following",
-  "run",
-  "runner",
-  "cycle",
-  "cyclist",
-  "ride",
-  "rider",
-  "activity",
-  "activities",
-  "map",
-  "maps",
-  "route",
-  "routes",
-  "live",
-  "gps",
-  "device",
-  "devices",
-  "integration",
-  "integrations",
-  "callback",
-  "oauth",
-  "connect",
-  "disconnect"
+  "null", "undefined", "nan", "void", "true", "false", "guest", "user", "users", "profile", "profiles", "auth", "db", "database",
+  "feed", "post", "posts", "comment", "comments", "like", "likes", "share", "shares",
+  "follow", "follower", "followers", "following", "run", "runner", "cycle", "cyclist",
+  "ride", "rider", "activity", "activities", "map", "maps", "route", "routes",
+  "live", "gps", "device", "devices", "integration", "integrations", "callback",
+  "oauth", "connect", "disconnect",
+  // System and App Routes
+  "admin", "administrator", "root", "system", "sysadmin", "support", "help",
+  "login", "logout", "signin", "signout", "register", "signup", "dashboard",
+  "settings", "config", "account", "billing", "api", "app", "home",
+  "terms", "privacy", "legal", "about", "contact", "faq", "blog", "news",
+  "press", "media", "jobs", "careers", "security", "status", "store", "shop",
+  "velozty", "velocity", "official",
+  // Common abusive or inappropriate terms (basic block)
+  "fake", "bot", "spam", "scam", "null", "undefined", "anonymous",
+  // Routes specifically used in Velozty AppBoundary
+  "social", "races", "race", "watch", "overlay", "transmissao", "results",
+  "explore", "search", "messages", "notifications", "chat", "create", "new",
+  "edit", "delete", "remove", "update", "upload", "download"
 ]);
 
 export function isValidUsernameFormat(username: string): boolean {
@@ -3065,4 +3044,143 @@ export async function adminCancelRace(raceId: string): Promise<void> {
 
 // Routes administration functions deleted (Routes are integrated as part of Races GP model)
 
+// -------------------------------------------------------------
+// REPORTS AND ABUSE SYSTEM
+// -------------------------------------------------------------
+export async function submitReport(
+  reporterId: string,
+  targetType: "post" | "comment" | "volt" | "profile",
+  targetId: string,
+  reason: string
+): Promise<AppReport> {
+  const newReport: AppReport = {
+    id: `report-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    reporter_id: reporterId,
+    target_type: targetType,
+    target_id: targetId,
+    reason: reason,
+    status: "pending",
+    created_at: new Date().toISOString()
+  };
 
+  if (isUsingMock) {
+    const reports = getStored<AppReport[]>(STORAGE_KEYS.SOCIAL_REPORTS, []);
+    reports.unshift(newReport);
+    setStored(STORAGE_KEYS.SOCIAL_REPORTS, reports);
+    return newReport;
+  }
+  
+  if (!supabase) throw new Error("Supabase is not configured.");
+  const { data, error } = await supabase.from("social_reports").insert(newReport).select().single();
+  if (error) throw error;
+  return data as AppReport;
+}
+
+export async function adminFetchReports(): Promise<AppReport[]> {
+  if (isUsingMock) {
+    return getStored<AppReport[]>(STORAGE_KEYS.SOCIAL_REPORTS, []);
+  }
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("social_reports").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as AppReport[];
+}
+
+export async function adminResolveReport(reportId: string, action: "dismiss" | "act"): Promise<void> {
+  const newStatus = action === "dismiss" ? "dismissed" : "acted";
+  if (isUsingMock) {
+    const reports = getStored<AppReport[]>(STORAGE_KEYS.SOCIAL_REPORTS, []);
+    const idx = reports.findIndex(r => r.id === reportId);
+    if (idx !== -1) {
+      reports[idx].status = newStatus;
+      setStored(STORAGE_KEYS.SOCIAL_REPORTS, reports);
+    }
+    return;
+  }
+  if (!supabase) return;
+  const { error } = await supabase.from("social_reports").update({ status: newStatus }).eq("id", reportId);
+  if (error) throw error;
+}
+
+// -------------------------------------------------------------
+// ADVANCED ADMIN FUNCTIONS (Volts, Photos, Participants)
+// -------------------------------------------------------------
+export async function adminFetchAllVolts(): Promise<ProfileVolt[]> {
+  if (isUsingMock) {
+    return getStored<ProfileVolt[]>(STORAGE_KEYS.PROFILE_VOLTS, []);
+  }
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("profile_volts").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as ProfileVolt[];
+}
+
+export async function adminDeleteVolt(voltId: string): Promise<void> {
+  if (isUsingMock) {
+    const volts = getStored<ProfileVolt[]>(STORAGE_KEYS.PROFILE_VOLTS, []).filter(v => v.id !== voltId);
+    setStored(STORAGE_KEYS.PROFILE_VOLTS, volts);
+    return;
+  }
+  if (!supabase) return;
+  const { error } = await supabase.from("profile_volts").delete().eq("id", voltId);
+  if (error) throw error;
+}
+
+export async function adminFetchAllProfilePhotos(): Promise<ProfilePhoto[]> {
+  if (isUsingMock) {
+    return getStored<ProfilePhoto[]>(STORAGE_KEYS.PROFILE_PHOTOS, []);
+  }
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("profile_photos").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as ProfilePhoto[];
+}
+
+export async function adminDeleteProfilePhoto(photoId: string): Promise<void> {
+  if (isUsingMock) {
+    const photos = getStored<ProfilePhoto[]>(STORAGE_KEYS.PROFILE_PHOTOS, []).filter(p => p.id !== photoId);
+    setStored(STORAGE_KEYS.PROFILE_PHOTOS, photos);
+    return;
+  }
+  if (!supabase) return;
+  const { error } = await supabase.from("profile_photos").delete().eq("id", photoId);
+  if (error) throw error;
+}
+
+export async function adminFetchRaceParticipants(raceId: string): Promise<RaceParticipant[]> {
+  if (isUsingMock) {
+    const all = getStored<RaceParticipant[]>(STORAGE_KEYS.PARTICIPANTS, []);
+    return all.filter(p => p.race_id === raceId);
+  }
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("race_participants").select("*").eq("race_id", raceId);
+  if (error) throw error;
+  return data as RaceParticipant[];
+}
+
+export async function adminKickParticipant(raceId: string, userId: string): Promise<void> {
+  if (isUsingMock) {
+    const participants = getStored<RaceParticipant[]>(STORAGE_KEYS.PARTICIPANTS, []);
+    const filtered = participants.filter(p => !(p.race_id === raceId && p.user_id === userId));
+    setStored(STORAGE_KEYS.PARTICIPANTS, filtered);
+    return;
+  }
+  if (!supabase) return;
+  const { error } = await supabase.from("race_participants").delete().eq("race_id", raceId).eq("user_id", userId);
+  if (error) throw error;
+}
+
+export async function adminForceFinishRace(raceId: string): Promise<void> {
+  if (isUsingMock) {
+    const races = getStored<Race[]>(STORAGE_KEYS.RACES, []);
+    const idx = races.findIndex(r => r.id === raceId);
+    if (idx !== -1) {
+      races[idx].status = "finished";
+      setStored(STORAGE_KEYS.RACES, races);
+    }
+    return;
+  }
+  if (!supabase) return;
+  const { error } = await supabase.from("races").update({ status: "finished" }).eq("id", raceId);
+  if (error) throw error;
+}
