@@ -24,6 +24,136 @@ import {
   Sun
 } from "lucide-react";
 
+const FeaturePreview: React.FC<{ variant: "routes" | "progress" | "ranking" | "challenges" | "gallery" | "community" | "spectators" | "profile" }> = ({ variant }) => {
+  if (variant === "routes") {
+    return (
+      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
+        <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Compass className="h-3.5 w-3.5 text-volt" /> Rotas</div>
+        <div className="space-y-2">
+          {["Circuito do parque", "Sprint da avenida", "Subida curta"].map((name, index) => (
+            <div key={name} className="flex items-center gap-3 rounded-xl bg-white/8 p-2">
+              <div className={`h-8 w-10 rounded-lg ${index === 1 ? "bg-hyperpink/25" : "bg-volt/20"}`} />
+              <div>
+                <div className="text-[10px] font-black text-white">{name}</div>
+                <div className="text-[8px] font-bold text-mutedgray">{index === 0 ? "4,8 km" : index === 1 ? "2,1 km" : "1,4 km"}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "progress") {
+    return (
+      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
+        <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Gauge className="h-3.5 w-3.5 text-hyperpink" /> Progresso</div>
+        <div className="h-20 rounded-xl bg-gradient-to-t from-volt/20 to-transparent border border-white/10 relative">
+          <div className="absolute left-4 bottom-5 h-2 w-2 rounded-full bg-volt" />
+          <div className="absolute left-12 bottom-9 h-2 w-2 rounded-full bg-volt" />
+          <div className="absolute left-20 bottom-14 h-2 w-2 rounded-full bg-volt" />
+          <div className="absolute left-28 bottom-8 h-2 w-2 rounded-full bg-volt" />
+          <div className="absolute left-36 bottom-12 h-2 w-2 rounded-full bg-volt" />
+        </div>
+        <div className="mt-3 text-[11px] font-black text-white">Esta semana</div>
+        <div className="text-[9px] font-bold text-volt">+18% vs. semana anterior</div>
+      </div>
+    );
+  }
+
+  if (variant === "ranking") {
+    return (
+      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
+        <div className="text-[10px] font-black uppercase text-white mb-3 flex items-center gap-2"><Trophy className="h-3.5 w-3.5 text-volt" /> Classificacao</div>
+        {["Adriana", "Voce", "Claudia", "Diogo"].map((name, index) => (
+          <div key={name} className="flex items-center justify-between border-b border-white/8 py-2 text-[10px] font-black text-white">
+            <span>{index + 1}. {name}</span>
+            <span className={index === 0 ? "text-volt" : "text-mutedgray"}>{index === 0 ? "Coroa" : `${42 - index * 6} pts`}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (variant === "challenges") {
+    return (
+      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
+        <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-hyperpink" /> Desafio</div>
+        <div className="rounded-xl border border-hyperpink/30 bg-hyperpink/10 p-3">
+          <div className="text-[9px] font-black text-hyperpink uppercase">Semana 3</div>
+          <div className="mt-2 grid grid-cols-5 gap-1">
+            {[true, true, false, true, false].map((active, index) => (
+              <div key={index} className={`h-7 rounded-md ${active ? "bg-volt" : "bg-white/12"}`} />
+            ))}
+          </div>
+          <div className="mt-3 text-[10px] font-bold text-white">Meta 15 km</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "gallery") {
+    return (
+      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
+        <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Globe className="h-3.5 w-3.5 text-volt" /> Galeria</div>
+        <div className="grid grid-cols-2 gap-2">
+          {["Sao Paulo", "Rio", "BH", "Curitiba"].map((city) => (
+            <div key={city} className="rounded-xl bg-white/8 p-3">
+              <div className="h-8 rounded-lg bg-volt/15 mb-2" />
+              <div className="text-[9px] font-black text-white">{city}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "community") {
+    return (
+      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
+        <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Users className="h-3.5 w-3.5 text-hyperpink" /> Comunidade</div>
+        <div className="rounded-xl bg-white/8 p-3">
+          <div className="text-[10px] font-black text-white">@sprintqueen</div>
+          <div className="mt-2 text-[9px] font-semibold text-mutedgray">Treino concluido. Quem vai no proximo?</div>
+          <div className="mt-3 flex gap-3 text-[9px] font-black text-hyperpink"><span>Curtir</span><span>Comentar</span></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (variant === "spectators") {
+    return (
+      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
+        <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Activity className="h-3.5 w-3.5 text-volt" /> Ao vivo</div>
+        <div className="relative h-24 rounded-xl border border-white/10 bg-white/5">
+          <div className="absolute left-5 top-7 h-3 w-3 rounded-full bg-volt" />
+          <div className="absolute left-20 top-12 h-3 w-3 rounded-full bg-hyperpink" />
+          <div className="absolute right-8 top-6 h-3 w-3 rounded-full bg-white" />
+          <div className="absolute left-4 right-4 top-1/2 border-t border-dashed border-white/25" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
+      <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Crown className="h-3.5 w-3.5 text-hyperpink" /> Perfil</div>
+      <div className="flex items-center gap-3">
+        <div className="h-12 w-12 rounded-2xl bg-volt/20" />
+        <div>
+          <div className="text-[11px] font-black text-white">BoltVolt</div>
+          <div className="text-[9px] font-bold text-mutedgray">3 vitorias • 8 rotas</div>
+        </div>
+      </div>
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="h-10 rounded-lg bg-hyperpink/20" />
+        <div className="h-10 rounded-lg bg-white/10" />
+        <div className="h-10 rounded-lg bg-volt/20" />
+      </div>
+    </div>
+  );
+};
+
 // Local translations to avoid bloating the central i18n.ts file
 const translations = {
   pt: {
@@ -50,24 +180,24 @@ const translations = {
     simLimitWarning: "Agora ficou sério!",
     crewRhythm: "Ritmo da turma",
     forTheCrew: "Para a turma",
-    featuresTitle: "Tudo o que você e sua turma precisam",
-    featuresSubtitle: "Da organização da corrida ao pós-prova, tudo pensado para deixar a turma mais unida e a disputa mais divertida.",
-    feat1Title: "Corrida Ao Vivo de Verdade",
-    feat1Desc: "Veja quem está na frente, quem encostou e quanto falta para buscar a liderança, tudo acontecendo no mapa enquanto a turma corre ou pedala.",
-    feat2Title: "Rotas Salvas e Reutilizáveis",
-    feat2Desc: "Transforme qualquer percurso em modelo, dê um nome próprio, adicione observações e reutilize a rota sempre que quiser.",
-    feat3Title: "Galeria Pública de Rotas",
-    feat3Desc: "Publique modelos por cidade e modalidade para outras pessoas encontrarem, pesquisarem e usarem no próximo encontro.",
-    feat4Title: "Metas, Desafios e História",
-    feat4Desc: "Crie metas pessoais, participe de desafios reais e guarde resultados, progresso e vitórias da turma no mesmo lugar.",
-    complete1Title: "Rede social da turma",
-    complete1Desc: "Siga amigos, publique fotos, comente, curta e marque pessoas com @.",
-    complete2Title: "Perfis com Volts",
-    complete2Desc: "Cada pessoa tem perfil público com fotos, bio, histórico e momentos de 24 horas.",
+    featuresTitle: "Tudo que você precisa, num só lugar",
+    featuresSubtitle: "Rotas, progresso, desafios e classificação para transformar qualquer encontro em disputa organizada.",
+    feat1Title: "Rotas que não se perdem",
+    feat1Desc: "Crie percursos com largada e chegada exatas, salve como modelo e reutilize quando a turma quiser repetir.",
+    feat2Title: "Progresso claro",
+    feat2Desc: "Acompanhe distância, corridas concluídas, vitórias, dias ativos e evolução por período.",
+    feat3Title: "Classificação da turma",
+    feat3Desc: "Veja quem lidera desafios, quem venceu mais vezes e quem virou referência por modalidade.",
+    feat4Title: "Desafios entre amigos",
+    feat4Desc: "Defina metas, convide sua rede e acompanhe rankings reais com base nas corridas do app.",
+    complete1Title: "Galeria pública de rotas",
+    complete1Desc: "Pesquise percursos por cidade e modalidade e use modelos publicados por outras pessoas.",
+    complete2Title: "Comunidade esportiva",
+    complete2Desc: "Siga amigos, publique fotos, comente, curta e mantenha a turma ativa fora da corrida.",
     complete3Title: "Corridas com espectadores",
-    complete3Desc: "Quem cria a corrida decide se a disputa pode ser acompanhada por outras pessoas.",
-    complete4Title: "Hall da fama local",
-    complete4Desc: "Campeões aparecem por vitórias, modalidade, cidade, estado e país.",
+    complete3Desc: "Permita que outras pessoas acompanhem a disputa ao vivo quando fizer sentido.",
+    complete4Title: "Perfis e momentos",
+    complete4Desc: "Mostre bio, fotos, histórico e Volts de 24 horas no perfil público.",
     pricingTitle: "Acesso Livre para Todos",
     simplePlans: "Planos simples",
     pricingSubtitle: "Comece de graça com a turma e evolua quando quiser mais controle, mais dados e mais presença nos encontros.",
@@ -142,24 +272,24 @@ const translations = {
     simLimitWarning: "Now it is getting real!",
     crewRhythm: "Crew rhythm",
     forTheCrew: "For the crew",
-    featuresTitle: "Everything You and Your Crew Need",
-    featuresSubtitle: "From planning the meetup to reliving the result, everything is built to keep your crew closer and the competition more exciting.",
-    feat1Title: "Real Live Racing",
-    feat1Desc: "See who is leading, who is closing the gap, and how the race is unfolding on the map while your crew runs or rides.",
-    feat2Title: "Saved Routes You Can Reuse",
-    feat2Desc: "Turn any course into a reusable template, give it a custom name, add notes, and bring it back whenever your crew wants to ride again.",
-    feat3Title: "Public Route Gallery",
-    feat3Desc: "Publish route templates by city and modality so other people can discover, search, and reuse them in their next meetup.",
-    feat4Title: "Goals, Challenges, and Story",
-    feat4Desc: "Set personal goals, join real challenges, and keep wins, progress, and standout moments in one place.",
-    complete1Title: "Crew social network",
-    complete1Desc: "Follow friends, share photos, comment, like, and mention people with @.",
-    complete2Title: "Profiles with Volts",
-    complete2Desc: "Each athlete gets a public profile with photos, bio, history, and 24-hour moments.",
+    featuresTitle: "Everything you need, in one place",
+    featuresSubtitle: "Routes, progress, challenges, and leaderboards to turn any meetup into an organized race.",
+    feat1Title: "Routes that stay ready",
+    feat1Desc: "Create courses with exact start and finish points, save them as templates, and reuse them anytime.",
+    feat2Title: "Clear progress",
+    feat2Desc: "Track distance, completed races, wins, active days, and evolution over time.",
+    feat3Title: "Crew leaderboards",
+    feat3Desc: "See who leads challenges, who wins more often, and who stands out by modality.",
+    feat4Title: "Friend challenges",
+    feat4Desc: "Set goals, invite your network, and follow real rankings based on races inside the app.",
+    complete1Title: "Public route gallery",
+    complete1Desc: "Search routes by city and modality and reuse templates published by other athletes.",
+    complete2Title: "Sports community",
+    complete2Desc: "Follow friends, share photos, comment, like, and keep the crew active between races.",
     complete3Title: "Races with spectators",
-    complete3Desc: "The race creator chooses whether other people can watch the action live.",
-    complete4Title: "Local hall of fame",
-    complete4Desc: "Champions stand out by wins, modality, city, state, and country.",
+    complete3Desc: "Let other people watch the race live when the creator allows it.",
+    complete4Title: "Profiles and moments",
+    complete4Desc: "Show bio, photos, history, and 24-hour Volts on public profiles.",
     pricingTitle: "Free Access for Everyone",
     simplePlans: "Simple plans",
     pricingSubtitle: "Start free with your crew and level up when you want more control, more insight, and more presence in every meetup.",
@@ -234,24 +364,24 @@ const translations = {
     simLimitWarning: "¡Ahora va en serio!",
     crewRhythm: "Ritmo del grupo",
     forTheCrew: "Para el grupo",
-    featuresTitle: "Todo lo que tú y tu grupo necesitan",
-    featuresSubtitle: "Desde organizar el encuentro hasta revivir el resultado, todo está pensado para unir más al grupo y hacer la competencia más emocionante.",
-    feat1Title: "Carrera En Vivo de Verdad",
-    feat1Desc: "Mira quién lidera, quién se acerca y cómo cambia la disputa en el mapa mientras tu grupo corre o pedalea.",
-    feat2Title: "Rutas Guardadas y Reutilizables",
-    feat2Desc: "Convierte cualquier recorrido en un modelo reutilizable, dale nombre propio, añade observaciones y úsalo de nuevo cuando quieras.",
-    feat3Title: "Galería Pública de Rutas",
-    feat3Desc: "Publica modelos por ciudad y modalidad para que otras personas los encuentren, los busquen y los reutilicen en su próximo encuentro.",
-    feat4Title: "Metas, Desafíos e Historia",
-    feat4Desc: "Crea metas personales, entra en desafíos reales y guarda victorias, progreso y momentos destacados en un solo lugar.",
-    complete1Title: "Red social del grupo",
-    complete1Desc: "Sigue amigos, publica fotos, comenta, da likes y menciona personas con @.",
-    complete2Title: "Perfiles con Volts",
-    complete2Desc: "Cada atleta tiene perfil público con fotos, bio, historial y momentos de 24 horas.",
+    featuresTitle: "Todo lo que necesitas, en un solo lugar",
+    featuresSubtitle: "Rutas, progreso, desafíos y clasificaciones para convertir cualquier encuentro en una carrera organizada.",
+    feat1Title: "Rutas siempre listas",
+    feat1Desc: "Crea recorridos con salida y llegada exactas, guárdalos como modelo y reutilízalos cuando quieras.",
+    feat2Title: "Progreso claro",
+    feat2Desc: "Sigue distancia, carreras completadas, victorias, días activos y evolución por período.",
+    feat3Title: "Clasificación del grupo",
+    feat3Desc: "Mira quién lidera desafíos, quién gana más y quién se destaca por modalidad.",
+    feat4Title: "Desafíos entre amigos",
+    feat4Desc: "Define metas, invita a tu red y sigue rankings reales basados en carreras dentro de la app.",
+    complete1Title: "Galería pública de rutas",
+    complete1Desc: "Busca recorridos por ciudad y modalidad y reutiliza modelos publicados por otras personas.",
+    complete2Title: "Comunidad deportiva",
+    complete2Desc: "Sigue amigos, publica fotos, comenta, da likes y mantén activo al grupo entre carreras.",
     complete3Title: "Carreras con espectadores",
-    complete3Desc: "Quien crea la carrera decide si otras personas pueden mirar la acción en vivo.",
-    complete4Title: "Salón de la fama local",
-    complete4Desc: "Los campeones aparecen por victorias, modalidad, ciudad, estado y país.",
+    complete3Desc: "Permite que otras personas miren la carrera en vivo cuando el creador lo autorice.",
+    complete4Title: "Perfiles y momentos",
+    complete4Desc: "Muestra bio, fotos, historial y Volts de 24 horas en perfiles públicos.",
     pricingTitle: "Acceso Libre para Todos",
     simplePlans: "Planes simples",
     pricingSubtitle: "Empieza gratis con tu grupo y sube de nivel cuando quieras más control, más datos y más presencia en cada encuentro.",
@@ -762,55 +892,20 @@ export const LandingPage: React.FC = () => {
         {/* Feature Grid Chassis */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* Card Feature 1 */}
-          <Card glow="volt" className="p-6 border border-white/10 hover:bg-white/5 transition-colors group">
-            <div className="bg-volt/10 border border-volt/20 p-3 rounded-2xl w-fit mb-4 group-hover:scale-105 transition-transform">
-              <Zap className="h-5 w-5 text-volt fill-volt/10" />
-            </div>
-            <h3 className="text-base font-black uppercase tracking-wider text-white mb-2">{t.feat1Title}</h3>
-            <p className="text-xs font-semibold text-mutedgray leading-relaxed uppercase">{t.feat1Desc}</p>
-          </Card>
-
-          {/* Card Feature 2 */}
-          <Card glow="pink" className="p-6 border border-white/10 hover:bg-white/5 transition-colors group">
-            <div className="bg-hyperpink/10 border border-hyperpink/20 p-3 rounded-2xl w-fit mb-4 group-hover:scale-105 transition-transform">
-              <Compass className="h-5 w-5 text-hyperpink" />
-            </div>
-            <h3 className="text-base font-black uppercase tracking-wider text-white mb-2">{t.feat2Title}</h3>
-            <p className="text-xs font-semibold text-mutedgray leading-relaxed uppercase">{t.feat2Desc}</p>
-          </Card>
-
-          {/* Card Feature 3 */}
-          <Card glow="volt" className="p-6 border border-white/10 hover:bg-white/5 transition-colors group">
-            <div className="bg-volt/10 border border-volt/20 p-3 rounded-2xl w-fit mb-4 group-hover:scale-105 transition-transform">
-              <Users className="h-5 w-5 text-volt" />
-            </div>
-            <h3 className="text-base font-black uppercase tracking-wider text-white mb-2">{t.feat3Title}</h3>
-            <p className="text-xs font-semibold text-mutedgray leading-relaxed uppercase">{t.feat3Desc}</p>
-          </Card>
-
-          {/* Card Feature 4 */}
-          <Card glow="pink" className="p-6 border border-white/10 hover:bg-white/5 transition-colors group">
-            <div className="bg-hyperpink/10 border border-hyperpink/20 p-3 rounded-2xl w-fit mb-4 group-hover:scale-105 transition-transform">
-              <Trophy className="h-5 w-5 text-hyperpink" />
-            </div>
-            <h3 className="text-base font-black uppercase tracking-wider text-white mb-2">{t.feat4Title}</h3>
-            <p className="text-xs font-semibold text-mutedgray leading-relaxed uppercase">{t.feat4Desc}</p>
-          </Card>
-
           {[
-            { icon: Users, title: t.complete1Title, desc: t.complete1Desc, glow: "volt" as const, iconClass: "text-volt", bgClass: "bg-volt/10 border-volt/20" },
-            { icon: Crown, title: t.complete2Title, desc: t.complete2Desc, glow: "pink" as const, iconClass: "text-hyperpink", bgClass: "bg-hyperpink/10 border-hyperpink/20" },
-            { icon: Activity, title: t.complete3Title, desc: t.complete3Desc, glow: "volt" as const, iconClass: "text-volt", bgClass: "bg-volt/10 border-volt/20" },
-            { icon: Trophy, title: t.complete4Title, desc: t.complete4Desc, glow: "pink" as const, iconClass: "text-hyperpink", bgClass: "bg-hyperpink/10 border-hyperpink/20" },
+            { title: t.feat1Title, desc: t.feat1Desc, glow: "volt" as const, preview: "routes" as const },
+            { title: t.feat2Title, desc: t.feat2Desc, glow: "pink" as const, preview: "progress" as const },
+            { title: t.feat3Title, desc: t.feat3Desc, glow: "volt" as const, preview: "ranking" as const },
+            { title: t.feat4Title, desc: t.feat4Desc, glow: "pink" as const, preview: "challenges" as const },
+            { title: t.complete1Title, desc: t.complete1Desc, glow: "volt" as const, preview: "gallery" as const },
+            { title: t.complete2Title, desc: t.complete2Desc, glow: "pink" as const, preview: "community" as const },
+            { title: t.complete3Title, desc: t.complete3Desc, glow: "volt" as const, preview: "spectators" as const },
+            { title: t.complete4Title, desc: t.complete4Desc, glow: "pink" as const, preview: "profile" as const },
           ].map((item) => {
-            const Icon = item.icon;
             return (
-              <Card key={item.title} glow={item.glow} className="p-6 border border-white/10 hover:bg-white/5 transition-colors group">
-                <div className={`${item.bgClass} border p-3 rounded-2xl w-fit mb-4 group-hover:scale-105 transition-transform`}>
-                  <Icon className={`h-5 w-5 ${item.iconClass}`} />
-                </div>
-                <h3 className="text-base font-black uppercase tracking-wider text-white mb-2">{item.title}</h3>
+              <Card key={item.title} glow={item.glow} className="p-5 border border-white/10 hover:bg-white/5 transition-colors group">
+                <FeaturePreview variant={item.preview} />
+                <h3 className="mt-5 text-base font-black uppercase tracking-wider text-white mb-2">{item.title}</h3>
                 <p className="text-xs font-semibold text-mutedgray leading-relaxed uppercase">{item.desc}</p>
               </Card>
             );
