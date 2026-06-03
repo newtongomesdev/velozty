@@ -461,76 +461,69 @@ const Admin: React.FC = () => {
                   <h3 className="text-xs font-black uppercase tracking-widest text-volt">{t("admin.usersList")}</h3>
                   <span className="text-[10px] font-mono text-mutedgray">{filteredUsers.length} pilotos</span>
                 </div>
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-white/10 text-mutedgray font-black uppercase tracking-wider text-[10px]">
-                      <th className="pb-3 pr-4">Avatar</th>
-                      <th className="pb-3 pr-4">{t("admin.colName")}</th>
-                      <th className="pb-3 pr-4">{t("admin.colEmail")}</th>
-                      <th className="pb-3 pr-4">{t("admin.colRole")}</th>
-                      <th className="pb-3 pr-4">{t("admin.colVisibility")}</th>
-                      <th className="pb-3 text-right">{t("admin.colActions")}</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5">
-                    {filteredUsers.map(u => (
-                      <tr key={u.id} className="hover:bg-white/5 transition-colors">
-                        <td className="py-3 pr-4">
-                          <div className="w-9 h-9 rounded-xl overflow-hidden bg-zinc-800 border border-white/10 flex items-center justify-center">
-                            {u.avatar_url ? (
-                              <img src={sanitizeImageUrl(u.avatar_url)} alt="Avatar" className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="text-[10px] font-black uppercase">{u.display_name.slice(0,2)}</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-3 pr-4 font-semibold">
-                          <span className="text-white font-bold block">{u.display_name}</span>
+                <div className="flex flex-col gap-3">
+                  {filteredUsers.map(u => (
+                    <div key={u.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 bg-zinc-800/30 hover:bg-zinc-800/60 rounded-xl border border-white/5 gap-4 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-zinc-800 border border-white/10 flex items-center justify-center shrink-0">
+                          {u.avatar_url ? (
+                            <img src={sanitizeImageUrl(u.avatar_url)} alt="Avatar" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-[10px] font-black uppercase">{u.display_name.slice(0,2)}</span>
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-white font-bold text-sm leading-tight">{u.display_name}</span>
                           {u.username && <span className="text-[10px] text-mutedgray font-mono">@{u.username}</span>}
-                        </td>
-                        <td className="py-3 pr-4 font-mono text-mutedgray text-[10px]">{u.email || "n/a"}</td>
-                        <td className="py-3 pr-4">
+                          <span className="text-[9px] text-mutedgray font-mono md:hidden mt-0.5">{u.email || "n/a"}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between md:w-auto md:gap-6 mt-2 md:mt-0 pt-2 md:pt-0 border-t border-white/5 md:border-none">
+                        <div className="hidden md:block font-mono text-mutedgray text-[10px]">
+                          {u.email || "n/a"}
+                        </div>
+                        
+                        <div className="flex gap-2">
                           <button
                             onClick={() => handleToggleAdmin(u)}
-                            className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider transition-colors ${u.is_admin ? "bg-volt/20 text-volt border border-volt/30" : "bg-white/5 text-mutedgray hover:bg-white/10"}`}
+                            className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-colors ${u.is_admin ? "bg-volt/20 text-volt border border-volt/30" : "bg-white/5 text-mutedgray hover:bg-white/10"}`}
                           >
                             {u.is_admin ? t("admin.roleAdmin") : t("admin.roleUser")}
                           </button>
-                        </td>
-                        <td className="py-3 pr-4">
+                          
                           <button
                             onClick={() => handleToggleVisibility(u)}
                             className="flex items-center gap-1 text-[10px] text-mutedgray hover:text-white transition-colors"
                           >
                             {u.is_public ? (
-                              <><Globe className="h-3.5 w-3.5 text-volt" /> {t("admin.visibilityPublic")}</>
+                              <><Globe className="h-3.5 w-3.5 text-volt" /> <span className="hidden sm:inline">{t("admin.visibilityPublic")}</span></>
                             ) : (
-                              <><Lock className="h-3.5 w-3.5 text-hyperpink" /> {t("admin.visibilityPrivate")}</>
+                              <><Lock className="h-3.5 w-3.5 text-hyperpink" /> <span className="hidden sm:inline">{t("admin.visibilityPrivate")}</span></>
                             )}
                           </button>
-                        </td>
-                        <td className="py-3 text-right">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              onClick={() => handleStartEdit(u)}
-                              className="text-mutedgray hover:text-white transition-colors"
-                              title={t("admin.actionEdit")}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleBanUser(u.id)}
-                              className="text-mutedgray hover:text-rose-500 transition-colors"
-                              title={t("admin.actionDelete")}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </div>
+
+                        <div className="flex justify-end gap-2 shrink-0">
+                          <button
+                            onClick={() => handleStartEdit(u)}
+                            className="p-1.5 bg-white/5 rounded-lg text-mutedgray hover:text-white hover:bg-white/10 transition-colors"
+                            title={t("admin.actionEdit")}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => handleBanUser(u.id)}
+                            className="p-1.5 bg-rose-500/10 rounded-lg text-rose-500 hover:text-white hover:bg-rose-500 transition-colors"
+                            title={t("admin.actionDelete")}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </Card>
             )}
 
@@ -614,86 +607,73 @@ const Admin: React.FC = () => {
             {activeTab === "races" && (
               <Card glow="volt" className="overflow-x-auto p-4 border border-white/5 bg-zinc-900/40">
                 <h3 className="text-xs font-black uppercase tracking-widest text-volt mb-4">{t("admin.racesMonitor")}</h3>
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-white/10 text-mutedgray font-black uppercase tracking-wider text-[10px]">
-                      <th className="pb-3 pr-4">{t("admin.colRaceName")}</th>
-                      <th className="pb-3 pr-4">{t("admin.colHost")}</th>
-                      <th className="pb-3 pr-4">{t("admin.colStatus")}</th>
-                      <th className="pb-3 pr-4">{t("admin.colSport")}</th>
-                      <th className="pb-3 text-right">Controle</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 font-semibold">
-                    {filteredRaces.map(r => (
-                      <React.Fragment key={r.id}>
-                        <tr className="hover:bg-white/5 transition-colors">
-                          <td className="py-3 pr-4">
-                            <p className="font-bold text-white">{r.name}</p>
-                            <p className="text-[10px] text-mutedgray">{r.city || "Online"}, {r.state}</p>
-                          </td>
-                          <td className="py-3 pr-4 font-mono text-[10px] text-mutedgray">{r.host_user_id}</td>
-                          <td className="py-3 pr-4">
-                            <span className={`inline-block px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
-                              r.status === "active" ? "bg-volt/20 text-volt border border-volt/30" :
-                              r.status === "lobby" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" :
-                              r.status === "finished" ? "bg-emerald-550/20 text-emerald-400 border border-emerald-550/30" :
-                              "bg-white/5 text-mutedgray"
-                            }`}>
-                              {r.status}
+                <div className="flex flex-col gap-3">
+                  {filteredRaces.map(r => (
+                    <div key={r.id} className="flex flex-col bg-zinc-800/30 rounded-xl border border-white/5 overflow-hidden">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between p-3 gap-3">
+                        <div className="flex flex-col">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold text-white text-sm">{r.name}</span>
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                                r.status === "active" ? "bg-volt/20 text-volt border border-volt/30" :
+                                r.status === "lobby" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" :
+                                r.status === "finished" ? "bg-emerald-550/20 text-emerald-400 border border-emerald-550/30" :
+                                "bg-white/5 text-mutedgray"
+                              }`}>
+                                {r.status}
                             </span>
-                          </td>
-                          <td className="py-3 pr-4 uppercase text-[10px] text-mutedgray">{r.modality}</td>
-                          <td className="py-3 text-right flex gap-2 justify-end">
+                          </div>
+                          <span className="text-[10px] text-mutedgray mt-1">{r.city || "Online"}, {r.state} • <span className="uppercase">{r.modality}</span></span>
+                          <span className="text-[9px] font-mono text-white/40 mt-1">Host: {r.host_user_id.slice(0, 12)}...</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mt-2 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-none">
+                          <button
+                            onClick={() => handleViewParticipants(r.id)}
+                            className="flex-1 md:flex-none justify-center flex px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-wider transition-all"
+                          >
+                            Pilotos
+                          </button>
+                          {r.status !== "finished" && r.status !== "cancelled" && (
                             <button
-                              onClick={() => handleViewParticipants(r.id)}
-                              className="px-2 py-1 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-white text-[9px] font-black uppercase tracking-wider transition-all"
+                              onClick={() => handleCancelRace(r.id)}
+                              className="flex-1 md:flex-none justify-center flex px-3 py-2 rounded-lg bg-hyperpink/10 border border-hyperpink/20 hover:bg-hyperpink hover:text-white text-hyperpink text-[10px] font-black uppercase tracking-wider transition-all"
                             >
-                              Pilotos
+                              {t("admin.actionCancel")}
                             </button>
-                            {r.status !== "finished" && r.status !== "cancelled" && (
-                              <button
-                                onClick={() => handleCancelRace(r.id)}
-                                className="px-2 py-1 rounded bg-hyperpink/10 border border-hyperpink/20 hover:bg-hyperpink hover:text-white text-hyperpink text-[9px] font-black uppercase tracking-wider transition-all"
-                              >
-                                {t("admin.actionCancel")}
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                        {raceParticipants[r.id] && (
-                          <tr className="bg-black/20">
-                            <td colSpan={5} className="p-4">
-                              <div className="flex flex-col gap-2">
-                                <h4 className="text-[10px] font-black uppercase text-volt">Participantes ({raceParticipants[r.id].length})</h4>
-                                {raceParticipants[r.id].length === 0 ? (
-                                  <span className="text-[10px] text-mutedgray">Nenhum participante.</span>
-                                ) : (
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                                    {raceParticipants[r.id].map(p => (
-                                      <div key={p.id} className="flex items-center justify-between bg-zinc-800/50 p-2 rounded-lg border border-white/5">
-                                        <div className="text-[10px] text-white/80 font-mono truncate mr-2">
-                                          {p.user_id.slice(0, 8)}...
-                                        </div>
-                                        <button 
-                                          onClick={() => handleKickParticipant(r.id, p.user_id)}
-                                          className="p-1 rounded bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors"
-                                          title="Expulsar da corrida"
-                                        >
-                                          <Trash2 className="h-3 w-3" />
-                                        </button>
-                                      </div>
-                                    ))}
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Expandable Participants section */}
+                      {raceParticipants[r.id] && (
+                        <div className="bg-black/40 p-3 border-t border-white/5">
+                          <h4 className="text-[10px] font-black uppercase text-volt mb-3">Participantes ({raceParticipants[r.id].length})</h4>
+                          {raceParticipants[r.id].length === 0 ? (
+                            <span className="text-[10px] text-mutedgray">Nenhum participante.</span>
+                          ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                              {raceParticipants[r.id].map(p => (
+                                <div key={p.id} className="flex items-center justify-between bg-zinc-800/80 p-2.5 rounded-lg border border-white/5">
+                                  <div className="text-[10px] text-white/80 font-mono truncate mr-2">
+                                    {p.user_id}
                                   </div>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))}
-                  </tbody>
-                </table>
+                                  <button 
+                                    onClick={() => handleKickParticipant(r.id, p.user_id)}
+                                    className="p-1.5 rounded bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors"
+                                    title="Expulsar da corrida"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </Card>
             )}
 
@@ -701,61 +681,47 @@ const Admin: React.FC = () => {
             {activeTab === "reports" && (
               <Card glow="pink" className="overflow-x-auto p-4 border border-white/5 bg-zinc-900/40">
                 <h3 className="text-xs font-black uppercase tracking-widest text-rose-500 mb-4">{t("report.adminTab") || "Denúncias"}</h3>
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-white/10 text-mutedgray font-black uppercase tracking-wider text-[10px]">
-                      <th className="pb-3 pr-4">Data</th>
-                      <th className="pb-3 pr-4">Motivo</th>
-                      <th className="pb-3 pr-4">Alvo</th>
-                      <th className="pb-3 pr-4">Status</th>
-                      <th className="pb-3 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-white/5 font-semibold">
-                    {filteredReports.map(r => (
-                      <tr key={r.id} className="hover:bg-white/5 transition-colors">
-                        <td className="py-3 pr-4 font-mono text-[10px] text-mutedgray">
+                <div className="flex flex-col gap-3">
+                  {filteredReports.map(r => (
+                    <div key={r.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 bg-zinc-800/30 rounded-xl border border-white/5 gap-3">
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                              r.status === "pending" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
+                              r.status === "acted" ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" :
+                              "bg-white/5 text-mutedgray"
+                            }`}>
+                              {r.status}
+                          </span>
+                          <span className="font-bold text-white text-sm">{r.reason}</span>
+                        </div>
+                        <span className="text-[10px] uppercase font-mono text-volt bg-volt/10 w-fit px-2 py-0.5 rounded border border-volt/20">
+                          {r.target_type}: {r.target_id.slice(0, 12)}...
+                        </span>
+                        <span className="font-mono text-[9px] text-mutedgray mt-1">
                           {new Date(r.created_at).toLocaleString()}
-                        </td>
-                        <td className="py-3 pr-4">
-                          <span className="font-bold text-white">{r.reason}</span>
-                        </td>
-                        <td className="py-3 pr-4">
-                          <span className="text-[10px] uppercase text-volt bg-volt/10 px-2 py-0.5 rounded border border-volt/20">
-                            {r.target_type}: {r.target_id.slice(0, 8)}...
-                          </span>
-                        </td>
-                        <td className="py-3 pr-4">
-                          <span className={`inline-block px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
-                            r.status === "pending" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
-                            r.status === "acted" ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" :
-                            "bg-white/5 text-mutedgray"
-                          }`}>
-                            {r.status}
-                          </span>
-                        </td>
-                        <td className="py-3 flex justify-end gap-2">
-                          {r.status === "pending" && (
-                            <>
-                              <button
-                                onClick={() => handleResolveReport(r.id, "act")}
-                                className="px-2 py-1 rounded bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500 hover:text-white text-rose-500 text-[9px] font-black uppercase tracking-wider transition-all"
-                              >
-                                {t("report.adminAct") || "Punir"}
-                              </button>
-                              <button
-                                onClick={() => handleResolveReport(r.id, "dismiss")}
-                                className="px-2 py-1 rounded bg-white/5 border border-white/10 hover:bg-white/10 text-white text-[9px] font-black uppercase tracking-wider transition-all"
-                              >
-                                {t("report.adminDismiss") || "Ignorar"}
-                              </button>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </span>
+                      </div>
+
+                      {r.status === "pending" && (
+                        <div className="flex items-center gap-2 mt-2 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-none w-full md:w-auto">
+                          <button
+                            onClick={() => handleResolveReport(r.id, "act")}
+                            className="flex-1 md:flex-none justify-center px-4 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500 hover:text-white text-rose-500 text-[10px] font-black uppercase tracking-wider transition-all"
+                          >
+                            {t("report.adminAct") || "Punir"}
+                          </button>
+                          <button
+                            onClick={() => handleResolveReport(r.id, "dismiss")}
+                            className="flex-1 md:flex-none justify-center px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-wider transition-all"
+                          >
+                            {t("report.adminDismiss") || "Ignorar"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </Card>
             )}
 
