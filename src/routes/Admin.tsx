@@ -356,52 +356,52 @@ const Admin: React.FC = () => {
         </div>
 
         {/* Tab Selection */}
-        <div className="flex overflow-x-auto gap-2 bg-zinc-900/50 p-1.5 rounded-2xl border border-white/5 no-scrollbar touch-pan-x">
+        <div className="grid grid-cols-2 xs:grid-cols-3 sm:flex sm:flex-wrap gap-2 bg-zinc-900/50 p-2 rounded-2xl border border-white/5 w-full">
           <button
             onClick={() => { setActiveTab("dashboard"); setSearchQuery(""); }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "dashboard" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap ${activeTab === "dashboard" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
           >
-            <Activity className="h-4 w-4" />
+            <Activity className="h-4 w-4 animate-pulse" />
             {t("admin.tabDashboard")}
           </button>
           <button
             onClick={() => { setActiveTab("users"); setSearchQuery(""); }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "users" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap ${activeTab === "users" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
           >
             <Users className="h-4 w-4" />
             {t("admin.tabUsers")}
           </button>
           <button
             onClick={() => { setActiveTab("social"); setSearchQuery(""); }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "social" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap ${activeTab === "social" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
           >
             <MessageSquare className="h-4 w-4" />
             {t("admin.tabSocial")}
           </button>
           <button
             onClick={() => { setActiveTab("races"); setSearchQuery(""); }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "races" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap ${activeTab === "races" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
           >
             <ShieldAlert className="h-4 w-4" />
             {t("admin.tabRaces")}
           </button>
           <button
             onClick={() => { setActiveTab("reports"); setSearchQuery(""); }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "reports" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap ${activeTab === "reports" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
           >
             <Flag className="h-4 w-4" />
             {t("report.adminTab") || "Denúncias"}
           </button>
           <button
             onClick={() => { setActiveTab("volts"); setSearchQuery(""); }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "volts" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap ${activeTab === "volts" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
           >
             <Zap className="h-4 w-4" />
             Volts
           </button>
           <button
             onClick={() => { setActiveTab("gallery"); setSearchQuery(""); }}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "gallery" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap col-span-2 xs:col-span-1 ${activeTab === "gallery" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
           >
             <Image className="h-4 w-4" />
             Galeria
@@ -414,7 +414,7 @@ const Admin: React.FC = () => {
             <h2 className="text-sm font-black uppercase tracking-widest text-mutedgray">
               {t("admin.statsTitle")}
             </h2>
-            <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <Card glow="volt" className="flex flex-col items-center justify-center p-6 text-center">
                 <Users className="h-8 w-8 text-volt mb-2" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-mutedgray">{t("admin.totalUsers")}</span>
@@ -468,7 +468,7 @@ const Admin: React.FC = () => {
           <>
             {/* Users Tab */}
             {activeTab === "users" && (
-              <Card glow="volt" className="w-full p-4 border border-white/5 bg-zinc-900/40 min-w-0">
+              <Card glow="volt" className="w-full p-4 border border-white/5 bg-zinc-900/40">
                 <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
                   <h3 className="text-xs font-black uppercase tracking-widest text-volt">{t("admin.usersList")}</h3>
                   <span className="text-[10px] font-mono text-mutedgray">{filteredUsers.length} pilotos</span>
@@ -617,7 +617,7 @@ const Admin: React.FC = () => {
 
             {/* Races Monitor Tab */}
             {activeTab === "races" && (
-              <Card glow="volt" className="w-full p-4 border border-white/5 bg-zinc-900/40 min-w-0">
+              <Card glow="volt" className="w-full p-4 border border-white/5 bg-zinc-900/40">
                 <h3 className="text-xs font-black uppercase tracking-widest text-volt mb-4">{t("admin.racesMonitor")}</h3>
                 <div className="flex flex-col gap-3 min-w-0">
                   {filteredRaces.map(r => (
@@ -691,7 +691,7 @@ const Admin: React.FC = () => {
 
             {/* Reports Tab */}
             {activeTab === "reports" && (
-              <Card glow="pink" className="w-full p-4 border border-white/5 bg-zinc-900/40 min-w-0">
+              <Card glow="pink" className="w-full p-4 border border-white/5 bg-zinc-900/40">
                 <h3 className="text-xs font-black uppercase tracking-widest text-rose-500 mb-4">{t("report.adminTab") || "Denúncias"}</h3>
                 <div className="flex flex-col gap-3 min-w-0">
                   {filteredReports.map(r => (
@@ -741,7 +741,7 @@ const Admin: React.FC = () => {
             {activeTab === "volts" && (
               <Card glow="volt" className="p-4 border border-white/5 bg-zinc-900/40">
                 <h3 className="text-xs font-black uppercase tracking-widest text-volt mb-4">Moderação de Volts</h3>
-                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {filteredVolts.map(v => (
                     <div key={v.id} className="relative aspect-[9/16] rounded-xl overflow-hidden group">
                       <img src={sanitizeImageUrl(v.image_url)} alt="Volt" className="w-full h-full object-cover" />
@@ -767,7 +767,7 @@ const Admin: React.FC = () => {
             {activeTab === "gallery" && (
               <Card glow="volt" className="p-4 border border-white/5 bg-zinc-900/40">
                 <h3 className="text-xs font-black uppercase tracking-widest text-volt mb-4">Moderação de Fotos de Perfil</h3>
-                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
+                <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
                   {filteredPhotos.map(p => (
                     <div key={p.id} className="relative aspect-square rounded-full overflow-hidden group border-2 border-white/10">
                       <img src={sanitizeImageUrl(p.image_url)} alt="Profile" className="w-full h-full object-cover" />
