@@ -332,6 +332,36 @@ const Admin: React.FC = () => {
           -ms-overflow-style: none;
           scrollbar-width: none;
         }
+        .admin-dropdown {
+          background-color: #101018 !important;
+          border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+        body.light-theme .admin-dropdown {
+          background-color: #ffffff !important;
+          border-color: rgba(0, 0, 0, 0.1) !important;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+        }
+        .admin-dropdown-item {
+          color: #a1a1aa !important;
+          background-color: transparent !important;
+          transition: all 0.2s;
+        }
+        .admin-dropdown-item:hover {
+          background-color: rgba(255, 255, 255, 0.05) !important;
+          color: #ffffff !important;
+        }
+        body.light-theme .admin-dropdown-item {
+          color: #555560 !important;
+        }
+        body.light-theme .admin-dropdown-item:hover {
+          background-color: rgba(0, 0, 0, 0.05) !important;
+          color: #000000 !important;
+        }
+        .admin-dropdown-item-active {
+          background-color: #C6FF00 !important;
+          color: #000000 !important;
+          font-weight: 900;
+        }
       `}</style>
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         
@@ -382,52 +412,52 @@ const Admin: React.FC = () => {
             <span className="text-sm font-bold text-volt">☰</span>
           </button>
           {menuOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 z-[99] rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-950 p-2 shadow-2xl flex flex-col gap-1">
+            <div className="absolute top-full left-0 right-0 mt-2 z-[99] rounded-xl border p-2 shadow-2xl flex flex-col gap-1 admin-dropdown">
               <button
                 onClick={() => { setActiveTab("dashboard"); setMenuOpen(false); setSearchQuery(""); }}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "dashboard" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "dashboard" ? "admin-dropdown-item-active" : "admin-dropdown-item"}`}
               >
                 <Activity className="h-4 w-4" />
                 {t("admin.tabDashboard")}
               </button>
               <button
                 onClick={() => { setActiveTab("users"); setMenuOpen(false); setSearchQuery(""); }}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "users" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "users" ? "admin-dropdown-item-active" : "admin-dropdown-item"}`}
               >
                 <Users className="h-4 w-4" />
                 {t("admin.tabUsers")}
               </button>
               <button
                 onClick={() => { setActiveTab("social"); setMenuOpen(false); setSearchQuery(""); }}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "social" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "social" ? "admin-dropdown-item-active" : "admin-dropdown-item"}`}
               >
                 <MessageSquare className="h-4 w-4" />
                 {t("admin.tabSocial")}
               </button>
               <button
                 onClick={() => { setActiveTab("races"); setMenuOpen(false); setSearchQuery(""); }}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "races" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "races" ? "admin-dropdown-item-active" : "admin-dropdown-item"}`}
               >
                 <ShieldAlert className="h-4 w-4" />
                 {t("admin.tabRaces")}
               </button>
               <button
                 onClick={() => { setActiveTab("reports"); setMenuOpen(false); setSearchQuery(""); }}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "reports" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "reports" ? "admin-dropdown-item-active" : "admin-dropdown-item"}`}
               >
                 <Flag className="h-4 w-4" />
                 {t("report.adminTab") || "Denúncias"}
               </button>
               <button
                 onClick={() => { setActiveTab("volts"); setMenuOpen(false); setSearchQuery(""); }}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "volts" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "volts" ? "admin-dropdown-item-active" : "admin-dropdown-item"}`}
               >
                 <Zap className="h-4 w-4" />
                 Volts
               </button>
               <button
                 onClick={() => { setActiveTab("gallery"); setMenuOpen(false); setSearchQuery(""); }}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "gallery" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "gallery" ? "admin-dropdown-item-active" : "admin-dropdown-item"}`}
               >
                 <Image className="h-4 w-4" />
                 Galeria
