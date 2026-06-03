@@ -456,7 +456,7 @@ const Admin: React.FC = () => {
           <>
             {/* Users Tab */}
             {activeTab === "users" && (
-              <Card glow="volt" className="overflow-x-auto p-4 border border-white/5 bg-zinc-900/40">
+              <Card glow="volt" className="w-full p-4 border border-white/5 bg-zinc-900/40">
                 <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
                   <h3 className="text-xs font-black uppercase tracking-widest text-volt">{t("admin.usersList")}</h3>
                   <span className="text-[10px] font-mono text-mutedgray">{filteredUsers.length} pilotos</span>
@@ -479,32 +479,32 @@ const Admin: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between md:w-auto md:gap-6 mt-2 md:mt-0 pt-2 md:pt-0 border-t border-white/5 md:border-none">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between md:w-auto gap-3 mt-3 pt-3 border-t border-white/5 md:border-none md:mt-0 md:pt-0">
                         <div className="hidden md:block font-mono text-mutedgray text-[10px]">
                           {u.email || "n/a"}
                         </div>
                         
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
                           <button
                             onClick={() => handleToggleAdmin(u)}
-                            className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-colors ${u.is_admin ? "bg-volt/20 text-volt border border-volt/30" : "bg-white/5 text-mutedgray hover:bg-white/10"}`}
+                            className={`flex-1 sm:flex-none justify-center flex px-2 py-2 sm:py-1 rounded-lg sm:rounded text-[9px] font-black uppercase tracking-wider transition-colors ${u.is_admin ? "bg-volt/20 text-volt border border-volt/30" : "bg-white/5 text-mutedgray hover:bg-white/10"}`}
                           >
                             {u.is_admin ? t("admin.roleAdmin") : t("admin.roleUser")}
                           </button>
                           
                           <button
                             onClick={() => handleToggleVisibility(u)}
-                            className="flex items-center gap-1 text-[10px] text-mutedgray hover:text-white transition-colors"
+                            className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-2 py-2 sm:py-1 rounded-lg sm:rounded bg-white/5 sm:bg-transparent text-[10px] text-mutedgray hover:text-white transition-colors"
                           >
                             {u.is_public ? (
-                              <><Globe className="h-3.5 w-3.5 text-volt" /> <span className="hidden sm:inline">{t("admin.visibilityPublic")}</span></>
+                              <><Globe className="h-3.5 w-3.5 text-volt" /> <span>{t("admin.visibilityPublic")}</span></>
                             ) : (
-                              <><Lock className="h-3.5 w-3.5 text-hyperpink" /> <span className="hidden sm:inline">{t("admin.visibilityPrivate")}</span></>
+                              <><Lock className="h-3.5 w-3.5 text-hyperpink" /> <span>{t("admin.visibilityPrivate")}</span></>
                             )}
                           </button>
                         </div>
 
-                        <div className="flex justify-end gap-2 shrink-0">
+                        <div className="flex items-center justify-end gap-2 shrink-0 w-full sm:w-auto">
                           <button
                             onClick={() => handleStartEdit(u)}
                             className="p-1.5 bg-white/5 rounded-lg text-mutedgray hover:text-white hover:bg-white/10 transition-colors"
@@ -605,7 +605,7 @@ const Admin: React.FC = () => {
 
             {/* Races Monitor Tab */}
             {activeTab === "races" && (
-              <Card glow="volt" className="overflow-x-auto p-4 border border-white/5 bg-zinc-900/40">
+              <Card glow="volt" className="w-full p-4 border border-white/5 bg-zinc-900/40">
                 <h3 className="text-xs font-black uppercase tracking-widest text-volt mb-4">{t("admin.racesMonitor")}</h3>
                 <div className="flex flex-col gap-3">
                   {filteredRaces.map(r => (
@@ -627,7 +627,7 @@ const Admin: React.FC = () => {
                           <span className="text-[9px] font-mono text-white/40 mt-1">Host: {r.host_user_id.slice(0, 12)}...</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 mt-2 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-none">
+                        <div className="flex items-center gap-2 mt-3 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-none w-full md:w-auto">
                           <button
                             onClick={() => handleViewParticipants(r.id)}
                             className="flex-1 md:flex-none justify-center flex px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-wider transition-all"
@@ -679,7 +679,7 @@ const Admin: React.FC = () => {
 
             {/* Reports Tab */}
             {activeTab === "reports" && (
-              <Card glow="pink" className="overflow-x-auto p-4 border border-white/5 bg-zinc-900/40">
+              <Card glow="pink" className="w-full p-4 border border-white/5 bg-zinc-900/40">
                 <h3 className="text-xs font-black uppercase tracking-widest text-rose-500 mb-4">{t("report.adminTab") || "Denúncias"}</h3>
                 <div className="flex flex-col gap-3">
                   {filteredReports.map(r => (
@@ -704,7 +704,7 @@ const Admin: React.FC = () => {
                       </div>
 
                       {r.status === "pending" && (
-                        <div className="flex items-center gap-2 mt-2 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-none w-full md:w-auto">
+                        <div className="flex items-center gap-2 mt-3 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-none w-full md:w-auto">
                           <button
                             onClick={() => handleResolveReport(r.id, "act")}
                             className="flex-1 md:flex-none justify-center px-4 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500 hover:text-white text-rose-500 text-[10px] font-black uppercase tracking-wider transition-all"
