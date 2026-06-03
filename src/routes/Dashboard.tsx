@@ -592,9 +592,16 @@ export const Dashboard: React.FC = () => {
               <div className="flex items-center gap-2">
                 <span className="text-base font-black uppercase tracking-wide text-white hover:text-volt transition-colors">{user?.display_name}</span>
                 {(user?.is_admin || user?.email === ADMIN_EMAIL) && (
-                  <span className="rounded-lg border border-volt/30 bg-volt/10 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.2em] text-volt">
-                    {t("dashboard.adminBadge")}
-                  </span>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate("/admin");
+                    }}
+                    className="flex items-center gap-1 rounded-lg border border-volt/30 bg-volt/10 hover:bg-volt/20 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.2em] text-volt transition-all active:scale-95 cursor-pointer"
+                  >
+                    <span>{t("dashboard.adminBadge")}</span>
+                    <span className="text-[10px]">⚙️</span>
+                  </button>
                 )}
               </div>
             </div>

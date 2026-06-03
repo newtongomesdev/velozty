@@ -2855,3 +2855,214 @@ export async function fetchActiveVoltsUsers(): Promise<string[]> {
   return Array.from(new Set((data || []).map((item: any) => item.user_id)));
 }
 
+export interface AdminStats {
+  users: number;
+  races: number;
+  posts: number;
+  volts: number;
+}
+
+export async function adminFetchStats(): Promise<AdminStats> {
+  if (isUsingMock) {
+    const profiles = getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles);
+    const races = getStored<Race[]>(STORAGE_KEYS.RACES, []);
+    const posts = getStored<SocialPost[]>(STORAGE_KEYS.SOCIAL_POSTS, defaultSocialPosts);
+    const volts = getStored<ProfileVolt[]>(STORAGE_KEYS.PROFILE_VOLTS, []);
+    return {
+      users: profiles.length,
+      races: races.length,
+      posts: posts.length,
+      volts: volts.length
+    };
+  }
+
+  if (!supabase) return { users: 0, races: 0, posts: 0, volts: 0 };
+  const [usersRes, racesRes, postsRes, voltsRes] = await Promise.all([
+    supabase.from("profiles").select("id", { count: "exact", head: true }),
+    supabase.from("races").select("id", { count: "exact", head: true }),
+    supabase.from("social_posts").select("id", { count: "exact", head: true }),
+    supabase.from("profile_volts").select("id", { count: "exact", head: true })
+  ]);
+
+  return {
+    users: usersRes.count || 0,
+    races: racesRes.count || 0,
+    posts: postsRes.count || 0,
+    volts: voltsRes.count || 0
+  };
+}
+
+export async function adminFetchUsers(): Promise<Profile[]> {
+  if (isUsingMock) {
+    return getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles);
+  }
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("profiles").select("*").order("display_name");
+  if (error) throw error;
+  return data as Profile[];
+}
+
+export async function adminUpdateUser(userId: string, data: Partial<Profile>): Promise<void> {
+  if (isUsingMock) {
+    const profiles = getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles);
+    const idx = profiles.findIndex(p => p.id === userId);
+    if (idx !== -1) {
+      profiles[idx] = { ...profiles[idx], ...data };
+      setStored(STORAGE_KEYS.PROFILES, profiles);
+    }
+    return;
+  }
+  if (!supabase) return;
+  const { error } = await supabase.from("profiles").update(data).eq("id", userId);
+  if (error) throw error;
+}
+
+export async function adminDeleteUser(userId: string): Promise<void> {
+  if (isUsingMock) {
+    const profiles = getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles).filter(p => p.id !== userId);
+    setStored(STORAGE_KEYS.PROFILES, profiles);
+    return;
+  }
+  if (!supabase) return;
+  const { error } = await supabase.from("profiles").delete().eq("id", userId);
+  if (error) throw error;
+}
+
+export async function adminFetchAllPosts(): Promise<(SocialPost & { display_name: string; username: string })[]> {
+  if (isUsingMock) {
+    const posts = getStored<SocialPost[]>(STORAGE_KEYS.SOCIAL_POSTS, defaultSocialPosts);
+    const profiles = getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles);
+    const comments = getStored<SocialComment[]>(STORAGE_KEYS.SOCIAL_COMMENTS, []);
+    const commentLikes = getStored<SocialCommentLike[]>(STORAGE_KEYS.SOCIAL_COMMENT_LIKES, []);
+    const likes = getStored<SocialLike[]>(STORAGE_KEYS.SOCIAL_LIKES, []);
+    const profileMap = new Map(profiles.map(p => [p.id, p]));
+
+    return posts.map(post => {
+      const p = profileMap.get(post.user_id);
+      const postComments = comments
+        .filter(comment => comment.post_id === post.id)
+        .map(comment => {
+          const commentAuthor = profileMap.get(comment.user_id);
+          return {
+            ...comment,
+            display_name: commentAuthor?.display_name || comment.display_name,
+            avatar_url: commentAuthor?.avatar_url || null,
+            likes_count: commentLikes.filter(like => like.comment_id === comment.id).length,
+            liked_by_current_user: commentLikes.some(like => like.comment_id === comment.id && like.user_id === post.user_id),
+          };
+        })
+        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+      return {
+        ...post,
+        display_name: p?.display_name || post.display_name || "Atleta",
+        username: p?.username || "atleta",
+        comments: postComments,
+        comments_count: postComments.length,
+        likes_count: likes.filter(like => like.post_id === post.id).length
+      };
+    });
+  }
+
+  if (!supabase) return [];
+  const { data: posts, error: postsError } = await supabase.from("social_posts").select("*").order("created_at", { ascending: false });
+  if (postsError) throw postsError;
+  
+  if (posts.length === 0) return [];
+  const postIds = posts.map(post => post.id);
+
+  const [{ data: comments }, { data: likes }, { data: commentLikes }] = await Promise.all([
+    supabase.from("social_comments").select("*").in("post_id", postIds).order("created_at", { ascending: true }),
+    supabase.from("social_likes").select("*").in("post_id", postIds),
+    supabase.from("social_comment_likes").select("*")
+  ]);
+
+  const distinctUserIds = Array.from(new Set([
+    ...posts.map(post => post.user_id),
+    ...(comments || []).map(comment => comment.user_id)
+  ]));
+
+  const { data: profiles, error: profilesError } = await supabase.from("profiles").select("id, display_name, username, avatar_url").in("id", distinctUserIds);
+  if (profilesError) throw profilesError;
+
+  const profileMap = new Map((profiles || []).map(p => [p.id, p]));
+  const likesList = (likes || []) as SocialLike[];
+  const commentsList = (comments || []) as SocialComment[];
+  const commentLikesList = (commentLikes || []) as SocialCommentLike[];
+
+  return posts.map(post => {
+    const p = profileMap.get(post.user_id);
+    const postComments = commentsList
+      .filter(c => c.post_id === post.id)
+      .map(c => {
+        const cAuthor = profileMap.get(c.user_id);
+        return {
+          ...c,
+          display_name: cAuthor?.display_name || c.display_name,
+          avatar_url: cAuthor?.avatar_url || null,
+          likes_count: commentLikesList.filter(l => l.comment_id === c.id).length,
+          liked_by_current_user: commentLikesList.some(l => l.comment_id === c.id && l.user_id === post.user_id)
+        };
+      });
+
+    return {
+      ...post,
+      display_name: p?.display_name || "Atleta",
+      username: p?.username || "atleta",
+      comments: postComments,
+      comments_count: postComments.length,
+      likes_count: likesList.filter(l => l.post_id === post.id).length
+    };
+  });
+}
+
+export async function adminDeletePost(postId: string): Promise<void> {
+  if (isUsingMock) {
+    const posts = getStored<SocialPost[]>(STORAGE_KEYS.SOCIAL_POSTS, defaultSocialPosts).filter(p => p.id !== postId);
+    setStored(STORAGE_KEYS.SOCIAL_POSTS, posts);
+    return;
+  }
+  if (!supabase) return;
+  const { error } = await supabase.from("social_posts").delete().eq("id", postId);
+  if (error) throw error;
+}
+
+export async function adminDeleteComment(commentId: string): Promise<void> {
+  if (isUsingMock) {
+    const comments = getStored<SocialComment[]>(STORAGE_KEYS.SOCIAL_COMMENTS, []).filter(c => c.id !== commentId);
+    setStored(STORAGE_KEYS.SOCIAL_COMMENTS, comments);
+    return;
+  }
+  if (!supabase) return;
+  const { error } = await supabase.from("social_comments").delete().eq("id", commentId);
+  if (error) throw error;
+}
+
+export async function adminFetchAllRaces(): Promise<Race[]> {
+  if (isUsingMock) {
+    return getStored<Race[]>(STORAGE_KEYS.RACES, []);
+  }
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("races").select("*").order("created_at", { ascending: false });
+  if (error) throw error;
+  return data as Race[];
+}
+
+export async function adminCancelRace(raceId: string): Promise<void> {
+  if (isUsingMock) {
+    const races = getStored<Race[]>(STORAGE_KEYS.RACES, []);
+    const idx = races.findIndex(r => r.id === raceId);
+    if (idx !== -1) {
+      races[idx] = { ...races[idx], status: "cancelled" };
+      setStored(STORAGE_KEYS.RACES, races);
+    }
+    return;
+  }
+  if (!supabase) return;
+  const { error } = await supabase.from("races").update({ status: "cancelled" }).eq("id", raceId);
+  if (error) throw error;
+}
+
+// Routes administration functions deleted (Routes are integrated as part of Races GP model)
+
+

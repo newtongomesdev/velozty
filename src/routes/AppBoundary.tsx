@@ -14,6 +14,7 @@ const HallOfFame = lazy(() => import("./HallOfFame"));
 const Social = lazy(() => import("./Social"));
 const PublicProfile = lazy(() => import("./PublicProfile"));
 const StravaCallback = lazy(() => import("./StravaCallback"));
+const Admin = lazy(() => import("./Admin"));
 
 const AppFallback = () => (
   <div className="flex min-h-[100dvh] items-center justify-center bg-darkbg text-xs font-black uppercase tracking-widest text-mutedgray">
@@ -44,6 +45,9 @@ const AppBoundary: React.FC = () => {
         <Route path="races/:id" element={<Protected><LiveRace /></Protected>} />
         <Route path="races/:id/results" element={<Protected><Results /></Protected>} />
         
+        {/* Admin panel */}
+        <Route path="admin" element={<Protected><Admin /></Protected>} />
+
         {/* Profile by Username or direct slug */}
         <Route path=":id" element={<Protected><PublicProfile /></Protected>} />
         
