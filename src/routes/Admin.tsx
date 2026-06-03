@@ -28,7 +28,7 @@ import { sanitizeImageUrl } from "../lib/sanitize";
 
 type AdminTab = "dashboard" | "users" | "social" | "races";
 
-const ADMIN_EMAIL = "egeohub101@gmail.com";
+const ADMIN_EMAILS = ["egeohub101@gmail.com", "ngfilho@gmail.com"];
 
 const Admin: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
@@ -57,7 +57,7 @@ const Admin: React.FC = () => {
   // Access validation
   useEffect(() => {
     if (!authLoading) {
-      const isAdmin = user?.is_admin || user?.email === ADMIN_EMAIL;
+      const isAdmin = user?.is_admin || ADMIN_EMAILS.includes(user?.email || "");
       if (!isAdmin) {
         showToast("Acesso Negado: Apenas administradores.", "warning");
         navigate("/dashboard", { replace: true });
@@ -90,7 +90,7 @@ const Admin: React.FC = () => {
   };
 
   useEffect(() => {
-    if (user && (user.is_admin || user.email === ADMIN_EMAIL)) {
+    if (user && (user.is_admin || ADMIN_EMAILS.includes(user.email || ""))) {
       loadData();
     }
   }, [activeTab, user]);
@@ -231,7 +231,7 @@ const Admin: React.FC = () => {
     );
   }
 
-  const isAdmin = user?.is_admin || user?.email === ADMIN_EMAIL;
+  const isAdmin = user?.is_admin || ADMIN_EMAILS.includes(user?.email || "");
   if (!isAdmin) return null;
 
   return (

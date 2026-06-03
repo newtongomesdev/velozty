@@ -60,7 +60,7 @@ import dayjs from "dayjs";
 
 const LGPD_CONSENT_KEY = "velozty_lgpd_consent";
 const LGPD_EXPORT_PREFIXES = ["velozty_", "velocity_"];
-const ADMIN_EMAIL = "egeohub101@gmail.com";
+const ADMIN_EMAILS = ["egeohub101@gmail.com", "ngfilho@gmail.com"];
 const RACE_REMINDER_KEY = "velozty_race_reminder_hours";
 
 export const Dashboard: React.FC = () => {
@@ -591,7 +591,7 @@ export const Dashboard: React.FC = () => {
               <span className="text-[9px] font-black tracking-widest text-mutedgray uppercase">{t("dashboard.title")}</span>
               <div className="flex items-center gap-2">
                 <span className="text-base font-black uppercase tracking-wide text-white hover:text-volt transition-colors">{user?.display_name}</span>
-                {(user?.is_admin || user?.email === ADMIN_EMAIL) && (
+                {(user?.is_admin || ADMIN_EMAILS.includes(user?.email || "")) && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
