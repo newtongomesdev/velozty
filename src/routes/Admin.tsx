@@ -323,6 +323,15 @@ const Admin: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-darkbg text-white p-4 md:p-8">
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         
         {/* Header Block */}
@@ -347,7 +356,7 @@ const Admin: React.FC = () => {
         </div>
 
         {/* Tab Selection */}
-        <div className="flex overflow-x-auto gap-2 bg-zinc-900/50 p-1.5 rounded-2xl border border-white/5 scrollbar-hide">
+        <div className="flex overflow-x-auto gap-2 bg-zinc-900/50 p-1.5 rounded-2xl border border-white/5 no-scrollbar touch-pan-x">
           <button
             onClick={() => { setActiveTab("dashboard"); setSearchQuery(""); }}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap ${activeTab === "dashboard" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
@@ -405,7 +414,7 @@ const Admin: React.FC = () => {
             <h2 className="text-sm font-black uppercase tracking-widest text-mutedgray">
               {t("admin.statsTitle")}
             </h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card glow="volt" className="flex flex-col items-center justify-center p-6 text-center">
                 <Users className="h-8 w-8 text-volt mb-2" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-mutedgray">{t("admin.totalUsers")}</span>
@@ -438,7 +447,10 @@ const Admin: React.FC = () => {
               type="text"
               placeholder={
                 activeTab === "users" ? t("admin.searchUsers") : 
-                activeTab === "social" ? t("admin.searchPosts") : t("admin.searchRaces")
+                activeTab === "social" ? t("admin.searchPosts") :
+                activeTab === "races" ? t("admin.searchRaces") :
+                activeTab === "reports" ? "Buscar denúncias..." :
+                activeTab === "volts" ? "Buscar Volts..." : "Buscar..."
               }
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
@@ -456,15 +468,15 @@ const Admin: React.FC = () => {
           <>
             {/* Users Tab */}
             {activeTab === "users" && (
-              <Card glow="volt" className="w-full p-4 border border-white/5 bg-zinc-900/40">
+              <Card glow="volt" className="w-full p-4 border border-white/5 bg-zinc-900/40 min-w-0">
                 <div className="flex items-center justify-between mb-4 border-b border-white/5 pb-2">
                   <h3 className="text-xs font-black uppercase tracking-widest text-volt">{t("admin.usersList")}</h3>
                   <span className="text-[10px] font-mono text-mutedgray">{filteredUsers.length} pilotos</span>
                 </div>
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 min-w-0">
                   {filteredUsers.map(u => (
-                    <div key={u.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 bg-zinc-800/30 hover:bg-zinc-800/60 rounded-xl border border-white/5 gap-4 transition-colors">
-                      <div className="flex items-center gap-3">
+                    <div key={u.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 bg-zinc-800/30 hover:bg-zinc-800/60 rounded-xl border border-white/5 gap-4 transition-colors min-w-0 w-full">
+                      <div className="flex items-center gap-3 min-w-0 w-full md:w-auto">
                         <div className="w-10 h-10 rounded-xl overflow-hidden bg-zinc-800 border border-white/10 flex items-center justify-center shrink-0">
                           {u.avatar_url ? (
                             <img src={sanitizeImageUrl(u.avatar_url)} alt="Avatar" className="w-full h-full object-cover" />
@@ -472,29 +484,29 @@ const Admin: React.FC = () => {
                             <span className="text-[10px] font-black uppercase">{u.display_name.slice(0,2)}</span>
                           )}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-white font-bold text-sm leading-tight">{u.display_name}</span>
-                          {u.username && <span className="text-[10px] text-mutedgray font-mono">@{u.username}</span>}
-                          <span className="text-[9px] text-mutedgray font-mono md:hidden mt-0.5">{u.email || "n/a"}</span>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="text-white font-bold text-sm leading-tight truncate block">{u.display_name}</span>
+                          {u.username && <span className="text-[10px] text-mutedgray font-mono truncate block">@{u.username}</span>}
+                          <span className="text-[9px] text-mutedgray font-mono md:hidden mt-0.5 truncate block">{u.email || "n/a"}</span>
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between md:w-auto gap-3 mt-3 pt-3 border-t border-white/5 md:border-none md:mt-0 md:pt-0">
-                        <div className="hidden md:block font-mono text-mutedgray text-[10px]">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full md:w-auto gap-3 mt-3 pt-3 border-t border-white/5 md:border-none md:mt-0 md:pt-0 min-w-0">
+                        <div className="hidden md:block font-mono text-mutedgray text-[10px] truncate max-w-[150px] lg:max-w-[250px]">
                           {u.email || "n/a"}
                         </div>
                         
-                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto min-w-0">
                           <button
                             onClick={() => handleToggleAdmin(u)}
-                            className={`flex-1 sm:flex-none justify-center flex px-2 py-2 sm:py-1 rounded-lg sm:rounded text-[9px] font-black uppercase tracking-wider transition-colors ${u.is_admin ? "bg-volt/20 text-volt border border-volt/30" : "bg-white/5 text-mutedgray hover:bg-white/10"}`}
+                            className={`flex-1 sm:flex-none justify-center flex px-2 py-2 sm:py-1 rounded-lg sm:rounded text-[9px] font-black uppercase tracking-wider transition-colors whitespace-nowrap ${u.is_admin ? "bg-volt/20 text-volt border border-volt/30" : "bg-white/5 text-mutedgray hover:bg-white/10"}`}
                           >
                             {u.is_admin ? t("admin.roleAdmin") : t("admin.roleUser")}
                           </button>
                           
                           <button
                             onClick={() => handleToggleVisibility(u)}
-                            className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-2 py-2 sm:py-1 rounded-lg sm:rounded bg-white/5 sm:bg-transparent text-[10px] text-mutedgray hover:text-white transition-colors"
+                            className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-2 py-2 sm:py-1 rounded-lg sm:rounded bg-white/5 sm:bg-transparent text-[10px] text-mutedgray hover:text-white transition-colors whitespace-nowrap"
                           >
                             {u.is_public ? (
                               <><Globe className="h-3.5 w-3.5 text-volt" /> <span>{t("admin.visibilityPublic")}</span></>
@@ -529,36 +541,36 @@ const Admin: React.FC = () => {
 
             {/* Social Feed Tab */}
             {activeTab === "social" && (
-              <div className="flex flex-col gap-4 animate-fade-in">
+              <div className="flex flex-col gap-4 animate-fade-in min-w-0 w-full">
                 <h3 className="text-xs font-black uppercase tracking-widest text-hyperpink">{t("admin.socialPosts")}</h3>
-                <div className="grid gap-4">
+                <div className="grid gap-4 min-w-0 w-full">
                   {filteredPosts.map(post => (
-                    <Card key={post.id} glow="pink" className="border border-white/5 bg-zinc-900/40 p-4 flex flex-col gap-3">
-                      <div className="flex items-start justify-between gap-4 border-b border-white/5 pb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full overflow-hidden bg-zinc-800 flex items-center justify-center text-[10px] font-black uppercase">
+                    <Card key={post.id} glow="pink" className="border border-white/5 bg-zinc-900/40 p-4 flex flex-col gap-3 min-w-0 w-full">
+                      <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-2 min-w-0">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="w-8 h-8 rounded-full overflow-hidden bg-zinc-800 flex items-center justify-center text-[10px] font-black uppercase shrink-0">
                             {post.avatar_url ? (
                               <img src={sanitizeImageUrl(post.avatar_url)} alt="Avatar" className="w-full h-full object-cover" />
                             ) : (
                               <span>{post.display_name.slice(0,2)}</span>
                             )}
                           </div>
-                          <div>
-                            <span className="text-xs font-bold text-white">{post.display_name}</span>
-                            <span className="block text-[8px] font-mono text-mutedgray">@{post.username}</span>
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-white block truncate">{post.display_name}</span>
+                            <span className="block text-[8px] font-mono text-mutedgray truncate">@{post.username}</span>
                           </div>
                         </div>
                         <button
                           onClick={() => handleDeletePost(post.id)}
-                          className="flex items-center gap-1 rounded-xl bg-hyperpink/10 border border-hyperpink/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-hyperpink hover:bg-hyperpink hover:text-white transition-all"
+                          className="flex items-center gap-1 rounded-xl bg-hyperpink/10 border border-hyperpink/20 p-2 sm:px-3 sm:py-1.5 text-[10px] font-black uppercase tracking-wider text-hyperpink hover:bg-hyperpink hover:text-white transition-all shrink-0"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
-                          {t("admin.actionDeletePost")}
+                          <span className="hidden sm:inline">{t("admin.actionDeletePost")}</span>
                         </button>
                       </div>
 
                       {/* Post body */}
-                      <p className="text-xs font-semibold leading-relaxed text-white/95">{post.content}</p>
+                      <p className="text-xs font-semibold leading-relaxed text-white/95 break-words">{post.content}</p>
                       {post.image_url && (
                         <div className="max-w-xs overflow-hidden rounded-xl border border-white/10">
                           <img src={sanitizeImageUrl(post.image_url)} alt="Media" className="w-full object-contain max-h-48" />
@@ -567,12 +579,12 @@ const Admin: React.FC = () => {
 
                       {/* Comments section */}
                       {(post.comments || []).length > 0 && (
-                        <div className="mt-2 bg-black/30 rounded-xl p-3 border border-white/5 flex flex-col gap-2">
+                        <div className="mt-2 bg-black/30 rounded-xl p-3 border border-white/5 flex flex-col gap-2 min-w-0">
                           <span className="text-[9px] font-black uppercase tracking-wider text-mutedgray">Comentários</span>
-                          <div className="flex flex-col gap-2 divide-y divide-white/5">
+                          <div className="flex flex-col gap-2 divide-y divide-white/5 min-w-0">
                             {(post.comments || []).map(c => (
-                              <div key={c.id} className="pt-2 flex items-start justify-between gap-4">
-                                <div className="flex gap-2">
+                              <div key={c.id} className="pt-2 flex items-start justify-between gap-4 min-w-0">
+                                <div className="flex gap-2 min-w-0 flex-1">
                                   <div className="w-6 h-6 rounded-full overflow-hidden bg-zinc-800 flex items-center justify-center text-[8px] font-black uppercase shrink-0">
                                     {c.avatar_url ? (
                                       <img src={sanitizeImageUrl(c.avatar_url)} alt="Avatar" className="w-full h-full object-cover" />
@@ -580,14 +592,14 @@ const Admin: React.FC = () => {
                                       <span>{c.display_name.slice(0,2)}</span>
                                     )}
                                   </div>
-                                  <div>
-                                    <span className="text-[10px] font-bold text-white">{c.display_name}</span>
-                                    <p className="text-[11px] text-white/80">{c.content}</p>
+                                  <div className="min-w-0 flex-1">
+                                    <span className="text-[10px] font-bold text-white block truncate">{c.display_name}</span>
+                                    <p className="text-[11px] text-white/80 break-words">{c.content}</p>
                                   </div>
                                 </div>
                                 <button
                                   onClick={() => handleDeleteComment(post.id, c.id)}
-                                  className="text-mutedgray hover:text-hyperpink transition-colors p-1"
+                                  className="text-mutedgray hover:text-hyperpink transition-colors p-1 shrink-0"
                                   title="Deletar comentário"
                                 >
                                   <X className="h-3.5 w-3.5" />
@@ -605,16 +617,16 @@ const Admin: React.FC = () => {
 
             {/* Races Monitor Tab */}
             {activeTab === "races" && (
-              <Card glow="volt" className="w-full p-4 border border-white/5 bg-zinc-900/40">
+              <Card glow="volt" className="w-full p-4 border border-white/5 bg-zinc-900/40 min-w-0">
                 <h3 className="text-xs font-black uppercase tracking-widest text-volt mb-4">{t("admin.racesMonitor")}</h3>
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 min-w-0">
                   {filteredRaces.map(r => (
-                    <div key={r.id} className="flex flex-col bg-zinc-800/30 rounded-xl border border-white/5 overflow-hidden">
-                      <div className="flex flex-col md:flex-row md:items-center justify-between p-3 gap-3">
-                        <div className="flex flex-col">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-bold text-white text-sm">{r.name}</span>
-                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                    <div key={r.id} className="flex flex-col bg-zinc-800/30 rounded-xl border border-white/5 overflow-hidden min-w-0">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between p-3 gap-3 min-w-0">
+                        <div className="flex flex-col min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 min-w-0">
+                            <span className="font-bold text-white text-sm truncate max-w-[200px] sm:max-w-[300px]">{r.name}</span>
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 ${
                                 r.status === "active" ? "bg-volt/20 text-volt border border-volt/30" :
                                 r.status === "lobby" ? "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30" :
                                 r.status === "finished" ? "bg-emerald-550/20 text-emerald-400 border border-emerald-550/30" :
@@ -623,11 +635,11 @@ const Admin: React.FC = () => {
                                 {r.status}
                             </span>
                           </div>
-                          <span className="text-[10px] text-mutedgray mt-1">{r.city || "Online"}, {r.state} • <span className="uppercase">{r.modality}</span></span>
-                          <span className="text-[9px] font-mono text-white/40 mt-1">Host: {r.host_user_id.slice(0, 12)}...</span>
+                          <span className="text-[10px] text-mutedgray mt-1 truncate">{r.city || "Online"}, {r.state} • <span className="uppercase">{r.modality}</span></span>
+                          <span className="text-[9px] font-mono text-white/40 mt-1 truncate">Host: {r.host_user_id}</span>
                         </div>
                         
-                        <div className="flex items-center gap-2 mt-3 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-none w-full md:w-auto">
+                        <div className="flex items-center gap-2 mt-3 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-none w-full md:w-auto shrink-0">
                           <button
                             onClick={() => handleViewParticipants(r.id)}
                             className="flex-1 md:flex-none justify-center flex px-3 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-wider transition-all"
@@ -647,20 +659,20 @@ const Admin: React.FC = () => {
 
                       {/* Expandable Participants section */}
                       {raceParticipants[r.id] && (
-                        <div className="bg-black/40 p-3 border-t border-white/5">
+                        <div className="bg-black/40 p-3 border-t border-white/5 min-w-0">
                           <h4 className="text-[10px] font-black uppercase text-volt mb-3">Participantes ({raceParticipants[r.id].length})</h4>
                           {raceParticipants[r.id].length === 0 ? (
                             <span className="text-[10px] text-mutedgray">Nenhum participante.</span>
                           ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 min-w-0">
                               {raceParticipants[r.id].map(p => (
-                                <div key={p.id} className="flex items-center justify-between bg-zinc-800/80 p-2.5 rounded-lg border border-white/5">
-                                  <div className="text-[10px] text-white/80 font-mono truncate mr-2">
+                                <div key={p.id} className="flex items-center justify-between bg-zinc-800/80 p-2.5 rounded-lg border border-white/5 min-w-0 gap-2">
+                                  <div className="text-[10px] text-white/80 font-mono truncate min-w-0 flex-1">
                                     {p.user_id}
                                   </div>
                                   <button 
                                     onClick={() => handleKickParticipant(r.id, p.user_id)}
-                                    className="p-1.5 rounded bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors"
+                                    className="p-1.5 rounded bg-rose-500/10 text-rose-500 hover:bg-rose-500 hover:text-white transition-colors shrink-0"
                                     title="Expulsar da corrida"
                                   >
                                     <Trash2 className="h-3.5 w-3.5" />
@@ -679,32 +691,32 @@ const Admin: React.FC = () => {
 
             {/* Reports Tab */}
             {activeTab === "reports" && (
-              <Card glow="pink" className="w-full p-4 border border-white/5 bg-zinc-900/40">
+              <Card glow="pink" className="w-full p-4 border border-white/5 bg-zinc-900/40 min-w-0">
                 <h3 className="text-xs font-black uppercase tracking-widest text-rose-500 mb-4">{t("report.adminTab") || "Denúncias"}</h3>
-                <div className="flex flex-col gap-3">
+                <div className="flex flex-col gap-3 min-w-0">
                   {filteredReports.map(r => (
-                    <div key={r.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 bg-zinc-800/30 rounded-xl border border-white/5 gap-3">
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest ${
+                    <div key={r.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 bg-zinc-800/30 rounded-xl border border-white/5 gap-3 min-w-0">
+                      <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shrink-0 ${
                               r.status === "pending" ? "bg-amber-500/20 text-amber-400 border border-amber-500/30" :
                               r.status === "acted" ? "bg-rose-500/20 text-rose-400 border border-rose-500/30" :
                               "bg-white/5 text-mutedgray"
                             }`}>
                               {r.status}
                           </span>
-                          <span className="font-bold text-white text-sm">{r.reason}</span>
+                          <span className="font-bold text-white text-sm break-words flex-1 min-w-0">{r.reason}</span>
                         </div>
-                        <span className="text-[10px] uppercase font-mono text-volt bg-volt/10 w-fit px-2 py-0.5 rounded border border-volt/20">
-                          {r.target_type}: {r.target_id.slice(0, 12)}...
+                        <span className="text-[10px] uppercase font-mono text-volt bg-volt/10 w-fit px-2 py-0.5 rounded border border-volt/20 truncate block max-w-full">
+                          {r.target_type}: {r.target_id}
                         </span>
-                        <span className="font-mono text-[9px] text-mutedgray mt-1">
+                        <span className="font-mono text-[9px] text-mutedgray mt-1 block">
                           {new Date(r.created_at).toLocaleString()}
                         </span>
                       </div>
 
                       {r.status === "pending" && (
-                        <div className="flex items-center gap-2 mt-3 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-none w-full md:w-auto">
+                        <div className="flex items-center gap-2 mt-3 md:mt-0 pt-3 md:pt-0 border-t border-white/5 md:border-none w-full md:w-auto shrink-0">
                           <button
                             onClick={() => handleResolveReport(r.id, "act")}
                             className="flex-1 md:flex-none justify-center px-4 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500 hover:text-white text-rose-500 text-[10px] font-black uppercase tracking-wider transition-all"
@@ -729,11 +741,11 @@ const Admin: React.FC = () => {
             {activeTab === "volts" && (
               <Card glow="volt" className="p-4 border border-white/5 bg-zinc-900/40">
                 <h3 className="text-xs font-black uppercase tracking-widest text-volt mb-4">Moderação de Volts</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {filteredVolts.map(v => (
                     <div key={v.id} className="relative aspect-[9/16] rounded-xl overflow-hidden group">
                       <img src={sanitizeImageUrl(v.image_url)} alt="Volt" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
+                      <div className="absolute inset-0 bg-black/60 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex flex-col justify-between p-3">
                         <div className="text-[9px] text-white font-bold">{new Date(v.created_at).toLocaleString()}</div>
                         <div>
                           <p className="text-[10px] text-white mb-2 line-clamp-3">{v.caption}</p>
@@ -755,11 +767,11 @@ const Admin: React.FC = () => {
             {activeTab === "gallery" && (
               <Card glow="volt" className="p-4 border border-white/5 bg-zinc-900/40">
                 <h3 className="text-xs font-black uppercase tracking-widest text-volt mb-4">Moderação de Fotos de Perfil</h3>
-                <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-4">
                   {filteredPhotos.map(p => (
                     <div key={p.id} className="relative aspect-square rounded-full overflow-hidden group border-2 border-white/10">
                       <img src={sanitizeImageUrl(p.image_url)} alt="Profile" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
+                      <div className="absolute inset-0 bg-black/40 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center p-2">
                         <button
                           onClick={() => handleDeletePhoto(p.id)}
                           className="p-2 bg-rose-500 rounded-full text-white hover:bg-rose-600 transition-colors"
