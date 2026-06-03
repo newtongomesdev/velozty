@@ -360,24 +360,26 @@ const Admin: React.FC = () => {
         <div className="sm:hidden relative w-full">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-zinc-900/80 text-xs font-black uppercase tracking-wider text-volt hover:bg-zinc-200 dark:hover:bg-zinc-800"
+            className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-white/10 bg-white/5 text-xs font-black uppercase tracking-wider hover:bg-white/10"
           >
             <span className="flex items-center gap-2">
-              {activeTab === "dashboard" && <Activity className="h-4 w-4" />}
-              {activeTab === "users" && <Users className="h-4 w-4" />}
-              {activeTab === "social" && <MessageSquare className="h-4 w-4" />}
-              {activeTab === "races" && <ShieldAlert className="h-4 w-4" />}
-              {activeTab === "reports" && <Flag className="h-4 w-4" />}
-              {activeTab === "volts" && <Zap className="h-4 w-4" />}
-              {activeTab === "gallery" && <Image className="h-4 w-4" />}
-              {activeTab === "dashboard" ? t("admin.tabDashboard") :
-               activeTab === "users" ? t("admin.tabUsers") :
-               activeTab === "social" ? t("admin.tabSocial") :
-               activeTab === "races" ? t("admin.tabRaces") :
-               activeTab === "reports" ? (t("report.adminTab") || "Denúncias") :
-               activeTab === "volts" ? "Volts" : "Galeria"}
+              {activeTab === "dashboard" && <Activity className="h-4 w-4 text-volt" />}
+              {activeTab === "users" && <Users className="h-4 w-4 text-volt" />}
+              {activeTab === "social" && <MessageSquare className="h-4 w-4 text-volt" />}
+              {activeTab === "races" && <ShieldAlert className="h-4 w-4 text-volt" />}
+              {activeTab === "reports" && <Flag className="h-4 w-4 text-volt" />}
+              {activeTab === "volts" && <Zap className="h-4 w-4 text-volt" />}
+              {activeTab === "gallery" && <Image className="h-4 w-4 text-volt" />}
+              <span className="text-white dark:text-white">
+                {activeTab === "dashboard" ? t("admin.tabDashboard") :
+                 activeTab === "users" ? t("admin.tabUsers") :
+                 activeTab === "social" ? t("admin.tabSocial") :
+                 activeTab === "races" ? t("admin.tabRaces") :
+                 activeTab === "reports" ? (t("report.adminTab") || "Denúncias") :
+                 activeTab === "volts" ? "Volts" : "Galeria"}
+              </span>
             </span>
-            <span className="text-sm font-bold">☰</span>
+            <span className="text-sm font-bold text-volt">☰</span>
           </button>
           {menuOpen && (
             <div className="absolute top-full left-0 right-0 mt-2 z-[99] rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-950 p-2 shadow-2xl flex flex-col gap-1">
@@ -582,7 +584,7 @@ const Admin: React.FC = () => {
                 </div>
                 <div className="flex flex-col gap-3 min-w-0">
                   {filteredUsers.map(u => (
-                    <div key={u.id} className="flex items-center justify-between p-2.5 bg-zinc-800/30 hover:bg-zinc-800/60 rounded-xl border border-white/5 gap-3 transition-colors min-w-0 w-full text-xs">
+                    <div key={u.id} className="flex items-center justify-between p-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 gap-3 transition-colors min-w-0 w-full text-xs">
                       {/* Left: Avatar + Info */}
                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
                         <div className="w-9 h-9 rounded-xl overflow-hidden bg-zinc-800 border border-white/10 flex items-center justify-center shrink-0">
