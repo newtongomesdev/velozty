@@ -9,3 +9,4 @@ export function normalizeLoginIdentifier(rawValue: string): { kind: "email" | "u
     value: value.replace(/^@+/, ""),
   };
 }
+

@@ -1,6 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import { AuthProvider, AuthGuard } from "../components/auth/AuthGuard";
+import { AuthGuard } from "../components/auth/AuthGuard";
 
 const Login = lazy(() => import("./Login"));
 const Dashboard = lazy(() => import("./Dashboard"));
@@ -27,28 +27,31 @@ const Protected = ({ children }: { children: React.ReactNode }) => (
 
 const AppBoundary: React.FC = () => {
   return (
-    <AuthProvider>
-      <Suspense fallback={<AppFallback />}>
-        <Routes>
-          <Route index element={<Navigate to="dashboard" replace />} />
-          <Route path="login" element={<Login />} />
-          <Route path="dashboard" element={<Protected><Dashboard /></Protected>} />
-          <Route path="races/new" element={<Protected><CreateRace /></Protected>} />
-          <Route path="races/public" element={<Protected><PublicRaces /></Protected>} />
-          <Route path="hall-of-fame" element={<Protected><HallOfFame /></Protected>} />
-          <Route path="social" element={<Protected><Social /></Protected>} />
-          <Route path="profile/:id" element={<Protected><PublicProfile /></Protected>} />
-          <Route path="strava/callback" element={<Protected><StravaCallback /></Protected>} />
-          <Route path="watch/:id" element={<WatchRace />} />
-          <Route path="join/:code" element={<Protected><JoinRace /></Protected>} />
-          <Route path="races/:id/edit" element={<Protected><CreateRace /></Protected>} />
-          <Route path="races/:id" element={<Protected><LiveRace /></Protected>} />
-          <Route path="races/:id/results" element={<Protected><Results /></Protected>} />
-          <Route path="*" element={<Navigate to="dashboard" replace />} />
-        </Routes>
-      </Suspense>
-    </AuthProvider>
+    <Suspense fallback={<AppFallback />}>
+      <Routes>
+        <Route index element={<Navigate to="dashboard" replace />} />
+        <Route path="login" element={<Login />} />
+        <Route path="dashboard" element={<Protected><Dashboard /></Protected>} />
+        <Route path="races/new" element={<Protected><CreateRace /></Protected>} />
+        <Route path="races/public" element={<Protected><PublicRaces /></Protected>} />
+        <Route path="hall-of-fame" element={<Protected><HallOfFame /></Protected>} />
+        <Route path="social" element={<Protected><Social /></Protected>} />
+        <Route path="profile/:id" element={<Protected><PublicProfile /></Protected>} />
+        <Route path="strava/callback" element={<Protected><StravaCallback /></Protected>} />
+        <Route path="watch/:id" element={<WatchRace />} />
+        <Route path="join/:code" element={<Protected><JoinRace /></Protected>} />
+        <Route path="races/:id/edit" element={<Protected><CreateRace /></Protected>} />
+        <Route path="races/:id" element={<Protected><LiveRace /></Protected>} />
+        <Route path="races/:id/results" element={<Protected><Results /></Protected>} />
+        
+        {/* Profile by Username or direct slug */}
+        <Route path=":id" element={<Protected><PublicProfile /></Protected>} />
+        
+        <Route path="*" element={<Navigate to="dashboard" replace />} />
+      </Routes>
+    </Suspense>
   );
 };
 
 export default AppBoundary;
+

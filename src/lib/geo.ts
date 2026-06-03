@@ -103,3 +103,4 @@ export function calculateElapsedTime(
   const end = finishTimeStr ? new Date(finishTimeStr).getTime() : Date.now();
   return Math.max(0, end - start);
 }
+

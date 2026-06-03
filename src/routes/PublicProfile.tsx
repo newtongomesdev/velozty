@@ -55,6 +55,12 @@ const PublicProfile: React.FC = () => {
 
       if (!profileData) return;
 
+      const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(id || "");
+      if (isUuid && profileData.username) {
+        navigate(`/${profileData.username}`, { replace: true });
+        return;
+      }
+
       // 2. Fetch media independently (non-blocking)
       try {
         const photoData = await fetchProfilePhotos(profileData.id);
@@ -336,7 +342,7 @@ const PublicProfile: React.FC = () => {
               </div>
               <button
                 type="button"
-                onClick={() => navigate("/app/social")}
+                onClick={() => navigate("/social")}
                 className="flex items-center gap-2 rounded-2xl border border-white/5 bg-black/15 px-4 py-3 text-left hover:text-volt"
               >
                 <MessageCircle className="h-4 w-4 text-volt" />
@@ -438,3 +444,4 @@ const PublicProfile: React.FC = () => {
 };
 
 export default PublicProfile;
+

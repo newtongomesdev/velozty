@@ -24,3 +24,4 @@ describe("getTranslation", () => {
     expect(getTranslation("en", "missing.key")).toBe("missing.key");
   });
 });
+

@@ -77,3 +77,4 @@ export async function showRaceNotification(title: string, body: string): Promise
     tag: `velozty-${Date.now()}`,
   });
 }
+

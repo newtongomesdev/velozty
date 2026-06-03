@@ -85,3 +85,4 @@ export const CopyInviteButton: React.FC<CopyInviteButtonProps> = ({ inviteCode }
   );
 };
 export default CopyInviteButton;
+

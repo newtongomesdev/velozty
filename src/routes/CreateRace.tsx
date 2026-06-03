@@ -94,12 +94,12 @@ export const CreateRace: React.FC = () => {
         const race = await fetchRaceById(raceId);
         if (!race) {
           showToast(t("createRace.loadError"), "error");
-          navigate("/app/dashboard");
+          navigate("/dashboard");
           return;
         }
         if (race.status !== "lobby") {
           showToast(t("createRace.editLocked"), "error");
-          navigate(`/app/races/${race.id}`);
+          navigate(`/races/${race.id}`);
           return;
         }
 
@@ -126,7 +126,7 @@ export const CreateRace: React.FC = () => {
       } catch (err: any) {
         logger.error(err);
         showToast(err.message || t("createRace.loadError"), "error");
-        navigate("/app/dashboard");
+        navigate("/dashboard");
       } finally {
         setLoadingRace(false);
       }
@@ -344,7 +344,7 @@ export const CreateRace: React.FC = () => {
         : await createRace(racePayload);
 
       showToast(t(isEditing ? "createRace.raceUpdated" : "createRace.raceCreated"), "success");
-      navigate(`/app/races/${savedRace.id}`);
+      navigate(`/races/${savedRace.id}`);
     } catch (err: any) {
       logger.error(err);
       showToast(err.message || t(isEditing ? "createRace.updateError" : "createRace.createError"), "error");
@@ -359,7 +359,7 @@ export const CreateRace: React.FC = () => {
       {/* 1. BACK BUTTON HEADER */}
       <header className="max-w-4xl mx-auto w-full flex items-center gap-3">
         <button
-          onClick={() => navigate("/app/dashboard")}
+          onClick={() => navigate("/dashboard")}
           className="p-3 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all focus:outline-none"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -704,3 +704,4 @@ export const CreateRace: React.FC = () => {
   );
 };
 export default CreateRace;
+

@@ -22,3 +22,4 @@ describe("sanitize helpers", () => {
     expect(sanitizeImageUrl("data:text/html;base64,abc")).toBe("");
   });
 });
+

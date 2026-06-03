@@ -2,6 +2,7 @@ import React, { Suspense, lazy, useCallback, useMemo, useState, useEffect, creat
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ToastProvider } from "./components/ui/Toast";
 import { I18nProvider } from "./components/i18n/I18nProvider";
+import { AuthProvider, useAuth } from "./components/auth/AuthGuard";
 
 // Route View screens loaded on demand
 const LandingPage = lazy(() => import("./routes/LandingPage"));
@@ -29,6 +30,20 @@ const RouteFallback = () => (
     Carregando Velozty...
   </div>
 );
+
+const RootRoute: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <RouteFallback />;
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <LandingPage />;
+};
 
 export const App: React.FC = () => {
   const themeStorageKey = "velocity_theme";
@@ -60,18 +75,19 @@ export const App: React.FC = () => {
       <I18nProvider>
         <BrowserRouter>
           <ToastProvider>
+            <AuthProvider>
               <div className="relative min-h-screen">
                 <Suspense fallback={<RouteFallback />}>
                 <Routes>
                 
                 {/* PUBLIC LANDING PAGE */}
-                <Route path="/" element={<LandingPage />} />
+                <Route path="/" element={<RootRoute />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/transmissao/:id" element={<RaceOverlay />} />
                 <Route path="/overlay/:id" element={<RaceOverlay />} />
                 
-                <Route path="/app/*" element={<AppBoundary />} />
+                <Route path="/*" element={<AppBoundary />} />
 
                 {/* DEFAULT FALLBACK REDIRECT */}
                 <Route path="*" element={<Navigate to="/" replace />} />
@@ -79,6 +95,7 @@ export const App: React.FC = () => {
                 </Routes>
                 </Suspense>
               </div>
+            </AuthProvider>
           </ToastProvider>
         </BrowserRouter>
       </I18nProvider>
@@ -87,3 +104,4 @@ export const App: React.FC = () => {
 };
 
 export default App;
+

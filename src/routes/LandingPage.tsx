@@ -412,7 +412,7 @@ export const LandingPage: React.FC = () => {
 
           {/* Login Action CTA */}
           <button 
-            onClick={() => navigate("/app/login")}
+            onClick={() => navigate("/login")}
             className="hidden sm:inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl border border-volt/30 bg-volt/10 text-volt hover:bg-volt hover:text-black transition-all text-xs font-black uppercase tracking-widest hover:shadow-glow-volt active:scale-95"
           >
             {t.ctaStart.split(" ")[0]} <ArrowRight className="h-3.5 w-3.5" />
@@ -455,7 +455,7 @@ export const LandingPage: React.FC = () => {
             <Button
               variant="volt"
               size="lg"
-              onClick={() => navigate("/app/login")}
+              onClick={() => navigate("/login")}
               className="text-xs tracking-widest font-black uppercase py-4 px-8 flex items-center justify-center gap-2 group"
             >
               {t.ctaStart}
@@ -465,7 +465,7 @@ export const LandingPage: React.FC = () => {
             <Button
               variant="glass"
               size="lg"
-              onClick={() => navigate("/app/races/public")}
+              onClick={() => navigate("/races/public")}
               className="text-xs tracking-widest font-black uppercase py-4 px-8 border border-white/10 hover:border-volt/30 flex items-center justify-center gap-2"
             >
               <Compass className="h-4 w-4" />
@@ -826,7 +826,7 @@ export const LandingPage: React.FC = () => {
             <Button
               variant="glass"
               fullWidth
-              onClick={() => navigate("/app/login")}
+              onClick={() => navigate("/login")}
               className="mt-8 py-3.5 text-xs font-black uppercase tracking-wider"
             >
               {t.pricingCta}
@@ -877,7 +877,7 @@ export const LandingPage: React.FC = () => {
             <Button
               variant="volt"
               fullWidth
-              onClick={() => navigate("/app/login")}
+              onClick={() => navigate("/login")}
               className="mt-8 py-4 text-xs font-black uppercase tracking-wider shadow-glow-volt"
             >
               {t.pricingCta}
@@ -922,7 +922,7 @@ export const LandingPage: React.FC = () => {
             <Button
               variant="glass"
               fullWidth
-              onClick={() => navigate("/app/login")}
+              onClick={() => navigate("/login")}
               className="mt-8 py-3.5 text-xs font-black uppercase tracking-wider hover:border-hyperpink/40"
             >
               {t.pricingCta}
@@ -1088,3 +1088,4 @@ export const LandingPage: React.FC = () => {
 };
 
 export default LandingPage;
+

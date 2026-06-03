@@ -23,7 +23,7 @@ const StravaCallback: React.FC = () => {
           <p className="text-sm font-semibold leading-relaxed text-mutedgray">
             {error ? t("strava.denied") : code ? t("strava.pending") : t("strava.missingCode")}
           </p>
-          <Button type="button" variant="volt" onClick={() => navigate("/app/dashboard")}>
+          <Button type="button" variant="volt" onClick={() => navigate("/dashboard")}>
             {t("strava.back")}
           </Button>
         </Card>
@@ -33,3 +33,4 @@ const StravaCallback: React.FC = () => {
 };
 
 export default StravaCallback;
+

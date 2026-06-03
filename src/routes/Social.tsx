@@ -306,7 +306,7 @@ const Social: React.FC = () => {
   };
 
   const openProfile = (profileId: string) => {
-    navigate(`/app/profile/${profileId}`);
+    navigate(`/profile/${profileId}`);
   };
 
   const handleComment = async (event: React.FormEvent, postId: string) => {
@@ -377,7 +377,7 @@ const Social: React.FC = () => {
       <header className="max-w-5xl mx-auto w-full flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/app/dashboard")}
+            onClick={() => navigate("/dashboard")}
             className="p-3 rounded-2xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10"
           >
             <ArrowLeft className="h-5 w-5" />
@@ -408,7 +408,7 @@ const Social: React.FC = () => {
                   setSelectedVolt(currentUserVolts[0]);
                   setSelectedVoltProfile({ display_name: user?.display_name || "Newton Gomes", id: user?.id || "" });
                 } else {
-                  navigate(`/app/profile/${user?.id}`);
+                  navigate(`/profile/${user?.id}`);
                 }
               }}
             >
@@ -824,3 +824,4 @@ const Social: React.FC = () => {
 };
 
 export default Social;
+

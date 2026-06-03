@@ -416,18 +416,135 @@ export async function getCurrentUser(existingUser?: User): Promise<Profile | nul
   return profile ? { ...profile, email: user.email } : virtualProfile;
 }
 
+export const RESERVED_USERNAMES = new Set([
+  // Core routes / pages
+  "dashboard",
+  "login",
+  "signup",
+  "register",
+  "races",
+  "hall-of-fame",
+  "social",
+  "profile",
+  "strava",
+  "watch",
+  "join",
+  "edit",
+  "results",
+  "overlay",
+  "transmissao",
+  "terms",
+  "privacy",
+  "about",
+  "contact",
+  "help",
+  "faq",
+  "settings",
+  "config",
+  
+  // Standard reserved names
+  "admin",
+  "administrator",
+  "root",
+  "sys",
+  "system",
+  "moderator",
+  "mod",
+  "staff",
+  "team",
+  "velozty",
+  "velocity",
+  "official",
+  "verified",
+  "support",
+  "api",
+  "dev",
+  "developer",
+  "developers",
+  "security",
+  "privacy-policy",
+  "terms-of-service",
+  "tos",
+  "info",
+  "mail",
+  "email",
+  "webmaster",
+  "host",
+  "localhost",
+  "robots.txt",
+  "sitemap.xml",
+  "favicon.ico",
+  "postmaster",
+  "hostmaster",
+  
+  // Code / system keywords
+  "null",
+  "undefined",
+  "nan",
+  "void",
+  "true",
+  "false",
+  "none",
+  "test",
+  "guest",
+  "user",
+  "users",
+  "profile",
+  "profiles",
+  "auth",
+  "db",
+  "database",
+  "feed",
+  "post",
+  "posts",
+  "comment",
+  "comments",
+  "like",
+  "likes",
+  "share",
+  "shares",
+  "follow",
+  "follower",
+  "followers",
+  "following",
+  "run",
+  "runner",
+  "cycle",
+  "cyclist",
+  "ride",
+  "rider",
+  "activity",
+  "activities",
+  "map",
+  "maps",
+  "route",
+  "routes",
+  "live",
+  "gps",
+  "device",
+  "devices",
+  "integration",
+  "integrations",
+  "callback",
+  "oauth",
+  "connect",
+  "disconnect"
+]);
+
 export function isValidUsernameFormat(username: string): boolean {
-  return USERNAME_REGEX.test(username.trim());
+  const candidate = username.trim().toLowerCase();
+  return USERNAME_REGEX.test(candidate) && !RESERVED_USERNAMES.has(candidate);
 }
 
 export async function isUsernameAvailable(username: string, excludeUserId?: string): Promise<boolean> {
-  const candidate = username.trim();
+  const candidate = username.trim().toLowerCase();
   if (!candidate) return false;
+  if (RESERVED_USERNAMES.has(candidate)) return false;
 
   if (isUsingMock) {
     const profiles = getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles);
     return !profiles.some((profile) => (
-      profile.username.toLowerCase() === candidate.toLowerCase() &&
+      profile.username.toLowerCase() === candidate &&
       profile.id !== excludeUserId
     ));
   }
@@ -769,7 +886,7 @@ export async function fetchStravaConnection(): Promise<StravaConnection | null> 
 export function getStravaAuthorizationUrl(): string | null {
   const clientId = import.meta.env.NEXT_PUBLIC_STRAVA_CLIENT_ID || import.meta.env.VITE_STRAVA_CLIENT_ID || "";
   if (!clientId) return null;
-  const redirectUri = `${window.location.origin}/app/strava/callback`;
+  const redirectUri = `${window.location.origin}/strava/callback`;
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -2247,7 +2364,7 @@ export async function toggleSocialLike(postId: string, currentUser?: Profile | n
           type: "social_like",
           title: `${user.display_name} curtiu sua postagem`,
           body: "Nova curtida na rede social.",
-          target_url: "/app/social",
+          target_url: "/social",
           read_at: null,
         });
       }
@@ -2274,7 +2391,7 @@ export async function toggleSocialLike(postId: string, currentUser?: Profile | n
         type: "social_like",
         title: `${user.display_name} curtiu sua postagem`,
         body: post.display_name ? "Nova curtida na rede social." : null,
-        target_url: "/app/social",
+        target_url: "/social",
         read_at: null,
       });
     }
@@ -2301,7 +2418,7 @@ export async function toggleSocialCommentLike(commentId: string, currentUser?: P
           type: "comment_like",
           title: `${user.display_name} curtiu seu comentário`,
           body: "Nova curtida em um comentário seu.",
-          target_url: "/app/social",
+          target_url: "/social",
           read_at: null,
         });
       }
@@ -2328,7 +2445,7 @@ export async function toggleSocialCommentLike(commentId: string, currentUser?: P
         type: "comment_like",
         title: `${user.display_name} curtiu seu comentário`,
         body: "Nova curtida em um comentário seu.",
-        target_url: "/app/social",
+        target_url: "/social",
         read_at: null,
       });
     }
@@ -2407,15 +2524,20 @@ export async function fetchSocialProfiles(currentUser?: Profile | null): Promise
   }));
 }
 
-export async function fetchSocialProfile(profileId: string, currentUser?: Profile | null): Promise<SocialProfile | null> {
+export async function fetchSocialProfile(profileIdOrUsername: string, currentUser?: Profile | null): Promise<SocialProfile | null> {
   const user = requireSocialUser(currentUser) ?? await getCurrentUser();
   if (!user) return null;
+
+  const isUuid = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(profileIdOrUsername);
 
   if (isUsingMock) {
     const profiles = getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles);
     const follows = getStored<SocialFollow[]>(STORAGE_KEYS.SOCIAL_FOLLOWS, defaultSocialFollows);
     const posts = getStored<SocialPost[]>(STORAGE_KEYS.SOCIAL_POSTS, defaultSocialPosts);
-    const profile = profiles.find(item => item.id === profileId && item.is_public !== false);
+    const profile = profiles.find(item => 
+      (isUuid ? item.id === profileIdOrUsername : item.username.toLowerCase() === profileIdOrUsername.toLowerCase()) 
+      && item.is_public !== false
+    );
     if (!profile) return null;
     return {
       ...profile,
@@ -2427,18 +2549,29 @@ export async function fetchSocialProfile(profileId: string, currentUser?: Profil
   }
 
   if (!supabase) return null;
-  const [{ data: profile }, { data: follows }, { count: postsCount }] = await Promise.all([
-    supabase.from("profiles").select("*").eq("id", profileId).eq("is_public", true).maybeSingle(),
-    supabase.from("social_follows").select("*"),
-    supabase.from("social_posts").select("*", { count: "exact", head: true }).eq("user_id", profileId),
-  ]);
+
+  let profileQuery = supabase.from("profiles").select("*").eq("is_public", true);
+  if (isUuid) {
+    profileQuery = profileQuery.eq("id", profileIdOrUsername);
+  } else {
+    profileQuery = profileQuery.ilike("username", profileIdOrUsername);
+  }
+
+  const { data: profile } = await profileQuery.maybeSingle();
   if (!profile) return null;
+
+  const targetId = profile.id;
+  const [{ data: follows }, { count: postsCount }] = await Promise.all([
+    supabase.from("social_follows").select("*"),
+    supabase.from("social_posts").select("*", { count: "exact", head: true }).eq("user_id", targetId),
+  ]);
+
   const followList = (follows || []) as SocialFollow[];
   return {
     ...(profile as Profile),
-    is_following: followList.some(f => f.follower_id === user.id && f.following_id === profileId),
-    followers_count: followList.filter(f => f.following_id === profileId).length,
-    following_count: followList.filter(f => f.follower_id === profileId).length,
+    is_following: followList.some(f => f.follower_id === user.id && f.following_id === targetId),
+    followers_count: followList.filter(f => f.following_id === targetId).length,
+    following_count: followList.filter(f => f.follower_id === targetId).length,
     posts_count: postsCount || 0,
   };
 }
@@ -2721,3 +2854,4 @@ export async function fetchActiveVoltsUsers(): Promise<string[]> {
   if (error) throw error;
   return Array.from(new Set((data || []).map((item: any) => item.user_id)));
 }
+

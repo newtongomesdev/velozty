@@ -45,3 +45,4 @@ export function sanitizeOptionalText(value: unknown, maxLength = 240): string | 
   const cleaned = sanitizeText(value, maxLength);
   return cleaned || null;
 }
+

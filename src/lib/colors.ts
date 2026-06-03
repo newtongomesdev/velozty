@@ -41,3 +41,4 @@ export function getGlowStyle(hexColor: string, opacity = 0.3) {
     boxShadow: `0 0 15px rgba(${r}, ${g}, ${b}, ${opacity})`,
   };
 }
+

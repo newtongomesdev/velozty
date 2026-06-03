@@ -70,7 +70,7 @@ export const JoinRace: React.FC = () => {
       } catch (err: any) {
         console.error("Resolve invite error:", err);
         showToast(err.message || t("invite.invalidCode"), "error");
-        navigate("/app/dashboard");
+        navigate("/dashboard");
       } finally {
         if (isMounted) {
           setResolving(false);
@@ -92,7 +92,7 @@ export const JoinRace: React.FC = () => {
     try {
       await joinRace(inviteCode);
       showToast(t("invite.joinedRace", { race: race.name }), "success");
-      navigate(`/app/races/${race.id}`);
+      navigate(`/races/${race.id}`);
     } catch (err: any) {
       console.error("Join race error:", err);
       showToast(err.message || t("invite.joinError"), "error");
@@ -200,7 +200,7 @@ export const JoinRace: React.FC = () => {
           </Button>
 
           <button
-            onClick={() => navigate("/app/dashboard")}
+            onClick={() => navigate("/dashboard")}
             className="w-full text-center text-xs font-bold text-mutedgray hover:text-white uppercase tracking-wider transition-colors py-2"
           >
             {t("invite.backToDashboard")}
@@ -218,3 +218,4 @@ export const JoinRace: React.FC = () => {
   );
 };
 export default JoinRace;
+

@@ -334,7 +334,7 @@ export const Dashboard: React.FC = () => {
         .filter(key => LGPD_EXPORT_PREFIXES.some(prefix => key.startsWith(prefix)))
         .forEach(key => localStorage.removeItem(key));
       showToast(t("dashboard.lgpdDeleted"), "info");
-      navigate("/app/login");
+      navigate("/login");
     } catch (err: any) {
       console.error(err);
       showToast(err.message || t("dashboard.lgpdDeleteError"), "error");
@@ -397,7 +397,7 @@ export const Dashboard: React.FC = () => {
       type: "upcoming_race" as const,
       title: t("dashboard.upcomingRaceTitle"),
       body: `${race.name} · ${dayjs(race.scheduled_at).format("DD/MM HH:mm")}`,
-      target_url: `/app/races/${race.id}`,
+      target_url: `/races/${race.id}`,
       read_at: null,
       created_at: race.scheduled_at || new Date().toISOString(),
     }));
@@ -500,7 +500,7 @@ export const Dashboard: React.FC = () => {
     try {
       await logoutUser();
       showToast(t("dashboard.logoutDone"), "info");
-      navigate("/app/login");
+      navigate("/login");
     } catch (err: any) {
       showToast(t("dashboard.logoutError"), "error");
     }
@@ -517,7 +517,7 @@ export const Dashboard: React.FC = () => {
     try {
       const participant = await joinRace(inviteCode);
       showToast(t("dashboard.joinSuccess"), "success");
-      navigate(`/app/races/${participant.race_id}`);
+      navigate(`/races/${participant.race_id}`);
     } catch (err: any) {
       console.error(err);
       showToast(err.message || t("dashboard.joinError"), "error");
@@ -602,7 +602,7 @@ export const Dashboard: React.FC = () => {
 
           <div className="relative z-[210] flex items-center gap-2">
             <button
-              onClick={() => navigate("/app/social")}
+              onClick={() => navigate("/social")}
               className="p-2.5 rounded-2xl bg-hyperpink/10 border border-hyperpink/20 text-hyperpink hover:text-white hover:bg-hyperpink hover:border-hyperpink transition-all focus:outline-none cursor-pointer shadow-[0_0_14px_rgba(255,43,214,0.16)]"
               title={t("dashboard.social")}
             >
@@ -711,7 +711,7 @@ export const Dashboard: React.FC = () => {
               </p>
             </div>
             <Button
-              onClick={() => navigate("/app/races/new")}
+              onClick={() => navigate("/races/new")}
               variant="volt"
               fullWidth
               className="mt-2"
@@ -733,7 +733,7 @@ export const Dashboard: React.FC = () => {
               </p>
             </div>
             <Button
-              onClick={() => navigate("/app/races/public")}
+              onClick={() => navigate("/races/public")}
               variant="pink"
               fullWidth
               className="mt-2"
@@ -786,7 +786,7 @@ export const Dashboard: React.FC = () => {
               </p>
             </div>
             <Button
-              onClick={() => navigate("/app/social")}
+              onClick={() => navigate("/social")}
               variant="pink"
               fullWidth
               className="mt-2"
@@ -817,7 +817,7 @@ export const Dashboard: React.FC = () => {
                   <Card
                     key={race.id}
                     hoverable
-                    onClick={() => navigate(`/app/races/${race.id}`)}
+                    onClick={() => navigate(`/races/${race.id}`)}
                     className="p-4 flex items-center justify-between border-white/5 hover:border-volt/30"
                   >
                     <div className="flex flex-col gap-1.5">
@@ -841,7 +841,7 @@ export const Dashboard: React.FC = () => {
                           type="button"
                           onClick={(event) => {
                             event.stopPropagation();
-                            navigate(`/app/races/${race.id}`);
+                            navigate(`/races/${race.id}`);
                           }}
                           className="text-[10px] font-black text-volt uppercase tracking-wider underline hover:text-white transition-colors focus:outline-none"
                         >
@@ -852,7 +852,7 @@ export const Dashboard: React.FC = () => {
                             type="button"
                             onClick={(event) => {
                               event.stopPropagation();
-                              navigate(`/app/races/${race.id}/edit`);
+                              navigate(`/races/${race.id}/edit`);
                             }}
                             className="inline-flex items-center gap-1 text-[10px] font-black text-cyan-300 uppercase tracking-wider underline hover:text-white transition-colors focus:outline-none"
                           >
@@ -896,7 +896,7 @@ export const Dashboard: React.FC = () => {
                   <Card
                     key={race.id}
                     hoverable
-                    onClick={() => navigate(`/app/races/${race.id}`)}
+                    onClick={() => navigate(`/races/${race.id}`)}
                     className="p-4 flex items-center justify-between border-white/5 hover:border-hyperpink/30"
                   >
                     <div className="flex flex-col gap-1.5">
@@ -1666,3 +1666,4 @@ export const Dashboard: React.FC = () => {
 };
 
 export default Dashboard;
+

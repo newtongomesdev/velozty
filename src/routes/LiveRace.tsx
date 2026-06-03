@@ -73,7 +73,7 @@ export const LiveRace: React.FC = () => {
   useEffect(() => {
     if (race?.status === "finished") {
       showToast(t("liveRace.finishedToast"), "info");
-      navigate(`/app/races/${id}/results`);
+      navigate(`/races/${id}/results`);
     }
   }, [race?.status, id, navigate]);
 
@@ -377,7 +377,7 @@ export const LiveRace: React.FC = () => {
       stopGps();
       await abandonRace(id, currentParticipant.id);
       showToast(t("liveRace.abandoned"), "warning");
-      navigate("/app/dashboard");
+      navigate("/dashboard");
     } catch (err: any) {
       showToast(t("liveRace.abandonError"), "error");
     }
@@ -391,7 +391,7 @@ export const LiveRace: React.FC = () => {
     try {
       await finalizeRace(id);
       showToast(t("liveRace.finalized"), "info");
-      navigate(`/app/races/${id}/results`);
+      navigate(`/races/${id}/results`);
     } catch (err: any) {
       showToast(t("liveRace.finalizeError"), "error");
     }
@@ -452,7 +452,7 @@ export const LiveRace: React.FC = () => {
         <p className="text-xs text-mutedgray max-w-xs mt-1.5 leading-relaxed uppercase">
           {error || t("liveRace.inaccessibleBody")}
         </p>
-        <Button onClick={() => navigate("/app/dashboard")} className="mt-4" variant="glass">
+        <Button onClick={() => navigate("/dashboard")} className="mt-4" variant="glass">
           {t("invite.backToDashboard")}
         </Button>
       </div>
@@ -472,7 +472,7 @@ export const LiveRace: React.FC = () => {
       <div className="min-h-[100dvh] bg-darkbg text-white p-4 relative flex flex-col justify-between">
         <header className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/app/dashboard")}
+            onClick={() => navigate("/dashboard")}
             className="p-3 rounded-2xl bg-white/5 border border-white/10 text-white/80"
           >
             ← {t("common.back")}
@@ -522,7 +522,7 @@ export const LiveRace: React.FC = () => {
             <h1 className="text-xl font-black uppercase tracking-wide text-white">{race.name}</h1>
           </div>
           <button
-            onClick={() => navigate("/app/dashboard")}
+            onClick={() => navigate("/dashboard")}
             className="text-xs font-black text-mutedgray hover:text-white uppercase tracking-wider underline focus:outline-none"
           >
             {t("liveRace.leaveLobby")}
@@ -724,7 +724,7 @@ export const LiveRace: React.FC = () => {
             </div>
 
             <Button
-              onClick={() => navigate(`/app/races/${id}/results`)}
+              onClick={() => navigate(`/races/${id}/results`)}
               variant="pink"
               fullWidth
               className="py-4 text-xs font-black tracking-widest shadow-[0_0_15px_rgba(255,43,214,0.4)]"
@@ -739,3 +739,4 @@ export const LiveRace: React.FC = () => {
   );
 };
 export default LiveRace;
+

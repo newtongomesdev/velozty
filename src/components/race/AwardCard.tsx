@@ -92,3 +92,4 @@ export const AwardCard: React.FC<AwardCardProps> = ({
     </div>
   );
 };
+
