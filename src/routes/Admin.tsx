@@ -356,52 +356,80 @@ const Admin: React.FC = () => {
         </div>
 
         {/* Tab Selection */}
-        <div className="grid grid-cols-2 xs:grid-cols-3 sm:flex sm:flex-wrap gap-2 bg-zinc-900/50 p-2 rounded-2xl border border-white/5 w-full">
+        <div className="flex overflow-x-auto gap-1 border-b border-zinc-200 dark:border-white/10 w-full no-scrollbar touch-pan-x scroll-smooth">
           <button
             onClick={() => { setActiveTab("dashboard"); setSearchQuery(""); }}
-            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap ${activeTab === "dashboard" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap -mb-px border-b-2 ${
+              activeTab === "dashboard"
+                ? "text-volt border-volt"
+                : "text-mutedgray hover:text-zinc-900 dark:hover:text-white border-transparent"
+            }`}
           >
-            <Activity className="h-4 w-4 animate-pulse" />
+            <Activity className="h-4 w-4" />
             {t("admin.tabDashboard")}
           </button>
           <button
             onClick={() => { setActiveTab("users"); setSearchQuery(""); }}
-            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap ${activeTab === "users" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap -mb-px border-b-2 ${
+              activeTab === "users"
+                ? "text-volt border-volt"
+                : "text-mutedgray hover:text-zinc-900 dark:hover:text-white border-transparent"
+            }`}
           >
             <Users className="h-4 w-4" />
             {t("admin.tabUsers")}
           </button>
           <button
             onClick={() => { setActiveTab("social"); setSearchQuery(""); }}
-            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap ${activeTab === "social" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap -mb-px border-b-2 ${
+              activeTab === "social"
+                ? "text-volt border-volt"
+                : "text-mutedgray hover:text-zinc-900 dark:hover:text-white border-transparent"
+            }`}
           >
             <MessageSquare className="h-4 w-4" />
             {t("admin.tabSocial")}
           </button>
           <button
             onClick={() => { setActiveTab("races"); setSearchQuery(""); }}
-            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap ${activeTab === "races" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap -mb-px border-b-2 ${
+              activeTab === "races"
+                ? "text-volt border-volt"
+                : "text-mutedgray hover:text-zinc-900 dark:hover:text-white border-transparent"
+            }`}
           >
             <ShieldAlert className="h-4 w-4" />
             {t("admin.tabRaces")}
           </button>
           <button
             onClick={() => { setActiveTab("reports"); setSearchQuery(""); }}
-            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap ${activeTab === "reports" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap -mb-px border-b-2 ${
+              activeTab === "reports"
+                ? "text-volt border-volt"
+                : "text-mutedgray hover:text-zinc-900 dark:hover:text-white border-transparent"
+            }`}
           >
             <Flag className="h-4 w-4" />
             {t("report.adminTab") || "Denúncias"}
           </button>
           <button
             onClick={() => { setActiveTab("volts"); setSearchQuery(""); }}
-            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap ${activeTab === "volts" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap -mb-px border-b-2 ${
+              activeTab === "volts"
+                ? "text-volt border-volt"
+                : "text-mutedgray hover:text-zinc-900 dark:hover:text-white border-transparent"
+            }`}
           >
             <Zap className="h-4 w-4" />
             Volts
           </button>
           <button
             onClick={() => { setActiveTab("gallery"); setSearchQuery(""); }}
-            className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all sm:whitespace-nowrap col-span-2 xs:col-span-1 ${activeTab === "gallery" ? "bg-volt text-black shadow-[0_0_12px_rgba(198,255,0,0.3)]" : "text-mutedgray hover:text-white hover:bg-white/5"}`}
+            className={`flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap -mb-px border-b-2 ${
+              activeTab === "gallery"
+                ? "text-volt border-volt"
+                : "text-mutedgray hover:text-zinc-900 dark:hover:text-white border-transparent"
+            }`}
           >
             <Image className="h-4 w-4" />
             Galeria
