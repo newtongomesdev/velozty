@@ -223,8 +223,12 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
   }, []);
 
   const tileUrl = isLightTheme
-    ? "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
+    ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
     : "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
+
+  const tileAttribution = isLightTheme
+    ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
   return (
     <div className="w-full h-full relative border border-white/5 rounded-2xl overflow-hidden shadow-[inset_0_0_20px_rgba(0,0,0,0.8)]">
@@ -238,9 +242,10 @@ export const LeafletMap: React.FC<LeafletMapProps> = ({
         className="w-full h-full bg-[#050508]"
         zoomControl={false}
       >
-        {/* Futuristic style using CartoDB Dark Matter / Positron based on active theme */}
+        {/* Readable street tiles in light mode, dark matter in dark mode */}
         <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          attribution={tileAttribution}
+          className={isLightTheme ? "velozty-map-light-tiles" : undefined}
           url={tileUrl}
         />
 

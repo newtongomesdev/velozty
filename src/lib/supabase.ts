@@ -1,4 +1,5 @@
 import { createClient, type User } from "@supabase/supabase-js";
+import { sanitizeImageUrl, sanitizeOptionalText } from "./sanitize";
 
 // Retrieve keys from environmental variables
 const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL || "";
@@ -159,6 +160,7 @@ export interface SocialComment {
   post_id: string;
   user_id: string;
   display_name: string;
+  avatar_url?: string | null;
   content: string;
   created_at: string;
   likes_count?: number;
@@ -176,6 +178,25 @@ export interface ProfilePhoto {
   user_id: string;
   image_url: string;
   caption?: string | null;
+  created_at: string;
+}
+
+export const MAX_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024; // 5MB
+
+export interface ProfileVolt {
+  id: string;
+  user_id: string;
+  image_url: string;
+  caption?: string | null;
+  created_at: string;
+  expires_at: string;
+  likes_count?: number;
+  liked_by_current_user?: boolean;
+}
+
+export interface ProfileVoltLike {
+  volt_id: string;
+  user_id: string;
   created_at: string;
 }
 
@@ -221,6 +242,8 @@ const STORAGE_KEYS = {
   SOCIAL_COMMENTS: "velozty_mock_social_comments",
   SOCIAL_COMMENT_LIKES: "velozty_mock_social_comment_likes",
   PROFILE_PHOTOS: "velozty_mock_profile_photos",
+  PROFILE_VOLTS: "velozty_mock_profile_volts",
+  PROFILE_VOLT_LIKES: "velozty_mock_profile_volt_likes",
   NOTIFICATIONS: "velozty_mock_notifications"
 };
 
@@ -551,8 +574,7 @@ export async function updateUserProfile(input: {
     if (!supabase) throw new Error("Supabase não configurado");
     const { data, error } = await supabase
       .from("profiles")
-      .upsert({ 
-        id: user.id,
+      .update({ 
         display_name: input.display_name,
         country: input.country,
         state: input.state,
@@ -565,11 +587,23 @@ export async function updateUserProfile(input: {
         is_public: input.is_public,
         username: usernameChanged ? requestedUsername : user.username,
         username_updated_at: usernameChanged ? new Date().toISOString() : user.username_updated_at ?? null,
-        created_at: user.created_at || new Date().toISOString()
       })
+      .eq("id", user.id)
       .select()
       .single();
     if (error) throw error;
+    
+    // Sync Supabase Auth metadata
+    await supabase.auth.updateUser({
+      data: {
+        display_name: input.display_name,
+        avatar_url: input.avatar_url,
+      }
+    }).catch(err => console.error("Error updating auth metadata:", err));
+
+    // Emit auth change event to update global React context state
+    mockEmitter.emit("auth_change", { ...data, email: user.email });
+
     return data;
   }
 }
@@ -2008,20 +2042,30 @@ export async function fetchSocialFeed(currentUser?: Profile | null): Promise<Soc
     const likes = getStored<SocialLike[]>(STORAGE_KEYS.SOCIAL_LIKES, []);
     const comments = getStored<SocialComment[]>(STORAGE_KEYS.SOCIAL_COMMENTS, []);
     const commentLikes = getStored<SocialCommentLike[]>(STORAGE_KEYS.SOCIAL_COMMENT_LIKES, []);
+    const profiles = getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles);
+    const profileMap = new Map(profiles.map(p => [p.id, p]));
     const followingIds = new Set(follows.filter(f => f.follower_id === user.id).map(f => f.following_id));
     return posts
       .filter(post => post.user_id === user.id || followingIds.has(post.user_id))
       .map(post => {
+        const authorProfile = profileMap.get(post.user_id);
         const postComments = comments
           .filter(comment => comment.post_id === post.id)
-          .map(comment => ({
-            ...comment,
-            likes_count: commentLikes.filter(like => like.comment_id === comment.id).length,
-            liked_by_current_user: commentLikes.some(like => like.comment_id === comment.id && like.user_id === user.id),
-          }))
+          .map(comment => {
+            const commentAuthor = profileMap.get(comment.user_id);
+            return {
+              ...comment,
+              display_name: commentAuthor?.display_name || comment.display_name,
+              avatar_url: commentAuthor?.avatar_url || null,
+              likes_count: commentLikes.filter(like => like.comment_id === comment.id).length,
+              liked_by_current_user: commentLikes.some(like => like.comment_id === comment.id && like.user_id === user.id),
+            };
+          })
           .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         return {
           ...post,
+          display_name: authorProfile?.display_name || post.display_name,
+          avatar_url: authorProfile?.avatar_url || post.avatar_url,
           likes_count: likes.filter(like => like.post_id === post.id).length,
           comments_count: postComments.length,
           liked_by_current_user: likes.some(like => like.post_id === post.id && like.user_id === user.id),
@@ -2073,7 +2117,11 @@ export async function fetchSocialFeed(currentUser?: Profile | null): Promise<Soc
   if (posts.length === 0) return [];
 
   const postIds = posts.map(post => post.id);
-  const [{ data: likes, error: likesError }, { data: comments, error: commentsError }] = await Promise.all([
+
+  const [
+    { data: likes, error: likesError }, 
+    { data: comments, error: commentsError }
+  ] = await Promise.all([
     withTimeout(
       supabase.from("social_likes").select("*").in("post_id", postIds),
       5000,
@@ -2087,8 +2135,29 @@ export async function fetchSocialFeed(currentUser?: Profile | null): Promise<Soc
   ]);
   if (likesError) throw likesError;
   if (commentsError) throw commentsError;
+
   const likeList = (likes || []) as SocialLike[];
   const commentList = (comments || []) as SocialComment[];
+
+  // Collect all unique user IDs from posts and comments to fetch profiles
+  const userIds = Array.from(new Set([
+    ...posts.map(post => post.user_id),
+    ...commentList.map(comment => comment.user_id)
+  ]));
+
+  let profileMap = new Map<string, { display_name: string; avatar_url: string | null }>();
+  if (userIds.length > 0) {
+    const { data: authorProfiles, error: authorProfilesError } = await withTimeout(
+      supabase.from("profiles").select("id, display_name, avatar_url").in("id", userIds),
+      5000,
+      "Social feed author profiles query timed out",
+    );
+    if (authorProfilesError) throw authorProfilesError;
+    (authorProfiles || []).forEach(p => {
+      profileMap.set(p.id, p);
+    });
+  }
+
   const commentIds = commentList.map(comment => comment.id);
   const { data: commentLikes, error: commentLikesError } = commentIds.length > 0
     ? await withTimeout(
@@ -2101,15 +2170,23 @@ export async function fetchSocialFeed(currentUser?: Profile | null): Promise<Soc
   const commentLikeList = (commentLikes || []) as SocialCommentLike[];
 
   return posts.map(post => {
+    const authorProfile = profileMap.get(post.user_id);
     const postComments = commentList
       .filter(comment => comment.post_id === post.id)
-      .map(comment => ({
-        ...comment,
-        likes_count: commentLikeList.filter(like => like.comment_id === comment.id).length,
-        liked_by_current_user: commentLikeList.some(like => like.comment_id === comment.id && like.user_id === user.id),
-      }));
+      .map(comment => {
+        const commentAuthor = profileMap.get(comment.user_id);
+        return {
+          ...comment,
+          display_name: commentAuthor?.display_name || comment.display_name,
+          avatar_url: commentAuthor?.avatar_url || null,
+          likes_count: commentLikeList.filter(like => like.comment_id === comment.id).length,
+          liked_by_current_user: commentLikeList.some(like => like.comment_id === comment.id && like.user_id === user.id),
+        };
+      });
     return {
       ...post,
+      display_name: authorProfile?.display_name || post.display_name,
+      avatar_url: authorProfile?.avatar_url || post.avatar_url,
       likes_count: likeList.filter(like => like.post_id === post.id).length,
       comments_count: postComments.length,
       liked_by_current_user: likeList.some(like => like.post_id === post.id && like.user_id === user.id),
@@ -2400,4 +2477,247 @@ export async function unfollowUser(profileId: string, currentUser?: Profile | nu
     .delete()
     .eq("follower_id", user.id)
     .eq("following_id", profileId);
+}
+
+// -------------------------------------------------------------
+// VOLTS AND EMAIL HELPER FUNCTIONS
+// -------------------------------------------------------------
+
+export function isActiveVolt(volt: ProfileVolt): boolean {
+  return new Date(volt.expires_at).getTime() > Date.now();
+}
+
+export function getVoltExpiry(): string {
+  return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+}
+
+export async function resolveLoginEmail(username: string): Promise<string | null> {
+  const cleaned = username.trim().toLowerCase();
+  if (isUsingMock) {
+    const profiles = getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles);
+    const profile = profiles.find(p => p.username?.toLowerCase() === cleaned);
+    return profile?.email || null;
+  }
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("email")
+    .eq("username", cleaned)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data.email || null;
+}
+
+export async function fetchProfileVolts(profileId: string): Promise<ProfileVolt[]> {
+  const currentUser = await getCurrentUser().catch(() => null);
+
+  if (isUsingMock) {
+    const storedVolts = getStored<ProfileVolt[]>(STORAGE_KEYS.PROFILE_VOLTS, []);
+    const activeVolts = storedVolts.filter(isActiveVolt);
+    if (activeVolts.length !== storedVolts.length) {
+      setStored(STORAGE_KEYS.PROFILE_VOLTS, activeVolts);
+    }
+    const likes = getStored<ProfileVoltLike[]>(STORAGE_KEYS.PROFILE_VOLT_LIKES, []);
+    return activeVolts
+      .filter(volt => volt.user_id === profileId)
+      .map(volt => ({
+        ...volt,
+        likes_count: likes.filter(l => l.volt_id === volt.id).length,
+        liked_by_current_user: currentUser ? likes.some(l => l.volt_id === volt.id && l.user_id === currentUser.id) : false
+      }))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("profile_volts")
+    .select("*")
+    .eq("user_id", profileId)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+
+  const volts = (data || []) as ProfileVolt[];
+  if (volts.length > 0) {
+    try {
+      const voltIds = volts.map(v => v.id);
+      const [likesRes, myLikeRes] = await Promise.all([
+        supabase.from("profile_volt_likes").select("volt_id").in("volt_id", voltIds),
+        currentUser ? supabase.from("profile_volt_likes").select("volt_id").in("volt_id", voltIds).eq("user_id", currentUser.id) : Promise.resolve({ data: [] })
+      ]);
+      const likesList = (likesRes.data || []) as ProfileVoltLike[];
+      const myLikesList = (myLikeRes.data || []) as ProfileVoltLike[];
+      return volts.map(volt => ({
+        ...volt,
+        likes_count: likesList.filter(l => l.volt_id === volt.id).length,
+        liked_by_current_user: myLikesList.some(l => l.volt_id === volt.id)
+      }));
+    } catch (err) {
+      console.warn("Erro ao carregar curtidas de Volts (a tabela pode não existir):", err);
+      return volts.map(volt => ({
+        ...volt,
+        likes_count: 0,
+        liked_by_current_user: false
+      }));
+    }
+  }
+  return volts;
+}
+
+export async function createProfileVolt(file: File, caption = ""): Promise<ProfileVolt> {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Não autenticado");
+  const imageUrl = await uploadMediaImage(file, "social");
+  const safeCaption = sanitizeOptionalText(caption, 120);
+  const safeImageUrl = sanitizeImageUrl(imageUrl);
+  const expiresAt = getVoltExpiry();
+
+  if (isUsingMock) {
+    const volts = getStored<ProfileVolt[]>(STORAGE_KEYS.PROFILE_VOLTS, []).filter(isActiveVolt);
+    const volt: ProfileVolt = {
+      id: `profile-volt-${Date.now()}`,
+      user_id: user.id,
+      image_url: safeImageUrl,
+      caption: safeCaption,
+      created_at: new Date().toISOString(),
+      expires_at: expiresAt,
+    };
+    volts.unshift(volt);
+    setStored(STORAGE_KEYS.PROFILE_VOLTS, volts);
+    return volt;
+  }
+
+  if (!supabase) throw new Error("Supabase não configurado");
+  const { data, error } = await supabase
+    .from("profile_volts")
+    .insert([{ user_id: user.id, image_url: safeImageUrl, caption: safeCaption, expires_at: expiresAt }])
+    .select()
+    .single();
+  if (error) throw error;
+  return data as ProfileVolt;
+}
+
+export async function toggleVoltLike(voltId: string, currentUser?: Profile | null): Promise<void> {
+  const user = requireSocialUser(currentUser) ?? await getCurrentUser();
+  if (!user) return;
+
+  if (isUsingMock) {
+    const likes = getStored<ProfileVoltLike[]>(STORAGE_KEYS.PROFILE_VOLT_LIKES, []);
+    const existing = likes.some(l => l.volt_id === voltId && l.user_id === user.id);
+    const updated = existing
+      ? likes.filter(l => !(l.volt_id === voltId && l.user_id === user.id))
+      : [...likes, { volt_id: voltId, user_id: user.id, created_at: new Date().toISOString() }];
+    setStored(STORAGE_KEYS.PROFILE_VOLT_LIKES, updated);
+    return;
+  }
+
+  if (!supabase) return;
+  const { data: existing } = await supabase
+    .from("profile_volt_likes")
+    .select("*")
+    .eq("volt_id", voltId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase.from("profile_volt_likes").delete().eq("volt_id", voltId).eq("user_id", user.id);
+  } else {
+    await supabase.from("profile_volt_likes").insert([{ volt_id: voltId, user_id: user.id }]);
+  }
+}
+
+export async function fetchFeedVolts(currentUser?: Profile | null): Promise<(ProfileVolt & { display_name: string; avatar_url: string | null })[]> {
+  const user = requireSocialUser(currentUser) ?? await getCurrentUser();
+  if (!user) return [];
+
+  if (isUsingMock) {
+    const volts = getStored<ProfileVolt[]>(STORAGE_KEYS.PROFILE_VOLTS, []).filter(isActiveVolt);
+    const follows = getStored<SocialFollow[]>(STORAGE_KEYS.SOCIAL_FOLLOWS, defaultSocialFollows);
+    const followingIds = new Set(follows.filter(f => f.follower_id === user.id).map(f => f.following_id));
+    
+    const profiles = getStored<Profile[]>(STORAGE_KEYS.PROFILES, defaultProfiles);
+    const profileMap = new Map(profiles.map(p => [p.id, p]));
+    const currentUserProfile = profileMap.get(user.id) || user;
+
+    const feedVolts = volts.filter(v => v.user_id === user.id || followingIds.has(v.user_id));
+    const likes = getStored<ProfileVoltLike[]>(STORAGE_KEYS.PROFILE_VOLT_LIKES, []);
+
+    return feedVolts.map(volt => {
+      const p = volt.user_id === user.id ? currentUserProfile : profileMap.get(volt.user_id);
+      return {
+        ...volt,
+        display_name: p?.display_name || "Atleta",
+        avatar_url: p?.avatar_url || null,
+        likes_count: likes.filter(l => l.volt_id === volt.id).length,
+        liked_by_current_user: likes.some(l => l.volt_id === volt.id && l.user_id === user.id)
+      };
+    }).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  }
+
+  if (!supabase) return [];
+
+  // Fetch followed users
+  const { data: follows, error: followsError } = await withTimeout(
+    supabase
+      .from("social_follows")
+      .select("following_id")
+      .eq("follower_id", user.id),
+    5000,
+    "Social follows query timed out",
+  );
+  if (followsError) throw followsError;
+
+  const ids = [user.id, ...((follows || []) as { following_id: string }[]).map(f => f.following_id)];
+
+  // Fetch volts
+  const { data: voltsData, error } = await supabase
+    .from("profile_volts")
+    .select("*")
+    .in("user_id", ids)
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+
+  const volts = (voltsData || []) as ProfileVolt[];
+  if (volts.length === 0) return [];
+
+  const distinctUserIds = Array.from(new Set(volts.map(v => v.user_id)));
+  const { data: profilesData } = await supabase
+    .from("profiles")
+    .select("id, display_name, avatar_url")
+    .in("id", distinctUserIds);
+
+  const voltIds = volts.map(v => v.id);
+  const [likesRes, myLikeRes] = await Promise.all([
+    supabase.from("profile_volt_likes").select("volt_id").in("volt_id", voltIds),
+    supabase.from("profile_volt_likes").select("volt_id").in("volt_id", voltIds).eq("user_id", user.id)
+  ]);
+  const likesList = (likesRes.data || []) as ProfileVoltLike[];
+  const myLikesList = (myLikeRes.data || []) as ProfileVoltLike[];
+
+  return volts.map(volt => {
+    const p = (profilesData || []).find(profile => profile.id === volt.user_id);
+    return {
+      ...volt,
+      display_name: p?.display_name || "Atleta",
+      avatar_url: p?.avatar_url || null,
+      likes_count: likesList.filter(l => l.volt_id === volt.id).length,
+      liked_by_current_user: myLikesList.some(l => l.volt_id === volt.id)
+    };
+  });
+}
+
+export async function fetchActiveVoltsUsers(): Promise<string[]> {
+  if (isUsingMock) {
+    const volts = getStored<ProfileVolt[]>(STORAGE_KEYS.PROFILE_VOLTS, []).filter(isActiveVolt);
+    return Array.from(new Set(volts.map(v => v.user_id)));
+  }
+
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("profile_volts")
+    .select("user_id")
+    .gt("expires_at", new Date().toISOString());
+  if (error) throw error;
+  return Array.from(new Set((data || []).map((item: any) => item.user_id)));
 }

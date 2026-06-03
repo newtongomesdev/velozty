@@ -10,13 +10,14 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       selfDestroying: true,
-      includeAssets: ['favicon.svg', 'icons.svg'],
+      includeAssets: ['favicon.svg', 'icons.svg', 'og-image.svg', 'robots.txt', 'sitemap.xml'],
       manifest: {
         name: 'Velozty',
         short_name: 'Velozty',
-        description: 'Velozty: Who is fastest?',
-        theme_color: '#050508',
-        background_color: '#050508',
+        description: 'Crie corridas, desafie amigos e acompanhe todo mundo no mapa em tempo real.',
+        lang: 'pt-BR',
+        theme_color: '#f4f4f9',
+        background_color: '#f4f4f9',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',

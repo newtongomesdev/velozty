@@ -3,7 +3,7 @@ values (
   'velozty-media',
   'velozty-media',
   true,
-  5242880,
+  10485760,
   array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 )
 on conflict (id) do update set
@@ -41,6 +41,43 @@ for insert with check (user_id = auth.uid() or private.is_admin_user());
 
 drop policy if exists profile_photos_delete on public.profile_photos;
 create policy profile_photos_delete on public.profile_photos
+for delete using (user_id = auth.uid() or private.is_admin_user());
+
+create table if not exists public.profile_volts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  image_url text not null,
+  caption text,
+  created_at timestamptz not null default now(),
+  expires_at timestamptz not null
+);
+
+create index if not exists profile_volts_user_active_idx
+  on public.profile_volts (user_id, expires_at desc, created_at desc);
+
+alter table public.profile_volts enable row level security;
+
+drop policy if exists profile_volts_select on public.profile_volts;
+create policy profile_volts_select on public.profile_volts
+for select using (
+  expires_at > now()
+  and exists (
+    select 1
+    from public.profiles profile
+    where profile.id = profile_volts.user_id
+      and (profile.is_public = true or profile.id = auth.uid() or private.is_admin_user())
+  )
+);
+
+drop policy if exists profile_volts_insert on public.profile_volts;
+create policy profile_volts_insert on public.profile_volts
+for insert with check (
+  user_id = auth.uid()
+  and expires_at <= now() + interval '24 hours' + interval '5 minutes'
+);
+
+drop policy if exists profile_volts_delete on public.profile_volts;
+create policy profile_volts_delete on public.profile_volts
 for delete using (user_id = auth.uid() or private.is_admin_user());
 
 create table if not exists public.notifications (
@@ -143,3 +180,28 @@ for delete using (
   bucket_id = 'velozty-media'
   and auth.uid()::text = (storage.foldername(name))[1]
 );
+
+create table if not exists public.profile_volt_likes (
+  volt_id uuid not null references public.profile_volts(id) on delete cascade,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (volt_id, user_id)
+);
+
+create index if not exists profile_volt_likes_volt_idx
+  on public.profile_volt_likes (volt_id);
+
+alter table public.profile_volt_likes enable row level security;
+
+drop policy if exists profile_volt_likes_select on public.profile_volt_likes;
+create policy profile_volt_likes_select on public.profile_volt_likes
+for select using (true);
+
+drop policy if exists profile_volt_likes_insert on public.profile_volt_likes;
+create policy profile_volt_likes_insert on public.profile_volt_likes
+for insert with check (user_id = auth.uid());
+
+drop policy if exists profile_volt_likes_delete on public.profile_volt_likes;
+create policy profile_volt_likes_delete on public.profile_volt_likes
+for delete using (user_id = auth.uid());
+

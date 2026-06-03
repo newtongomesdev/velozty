@@ -30,6 +30,7 @@ const translations = {
     heroBadge: "Velozty: Who is fastest?",
     navFeatures: "Recursos",
     navPricing: "Planos",
+    themeToggle: "Alternar tema",
     heroTitlePre: "VELOZTY:",
     heroTitleVolt: "WHO IS",
     heroTitlePost: "FASTEST?",
@@ -45,11 +46,14 @@ const translations = {
     simHr: "Animação",
     simGForce: "Energia",
     simPressToAccelerate: "Segure para acelerar",
+    simAccelerating: "Acelerando",
     simLimitWarning: "Agora ficou sério!",
+    crewRhythm: "Ritmo da turma",
+    forTheCrew: "Para a turma",
     featuresTitle: "Tudo o que você e sua turma precisam",
     featuresSubtitle: "Para marcar o encontro, chamar os amigos e acompanhar a corrida sem complicação.",
-    feat1Title: "Todo Mundo no Mapa",
-    feat1Desc: "Veja onde cada amigo está durante a corrida. Fica mais fácil acompanhar, torcer e esperar a turma chegar.",
+    feat1Title: "Disputa Metro a Metro",
+    feat1Desc: "Saiba exatamente qual é a sua posição na corrida e acompanhe em tempo real a distância em metros para o piloto que está na sua frente ou colado na sua traseira.",
     feat2Title: "Leve e Sem Complicação",
     feat2Desc: "Funciona direto no navegador do celular, sem precisar instalar nada pesado. É só clicar e sair usando.",
     feat3Title: "Convite em Segundos",
@@ -57,6 +61,7 @@ const translations = {
     feat4Title: "Ranking da Turma",
     feat4Desc: "Guarde os resultados e veja quem foi o campeão da rodada, por brincadeira ou por desafio.",
     pricingTitle: "Acesso Livre para Todos",
+    simplePlans: "Planos simples",
     pricingSubtitle: "Escolha o melhor jeito de pedalar e correr com seus amigos.",
     plan1Name: "Amigos no Rolê",
     plan1Price: "Grátis",
@@ -81,9 +86,10 @@ const translations = {
     plan3Feat1: "Sobreposição ao vivo para lives (OBS/Twitch)",
     plan3Feat2: "Painel de controle para grandes grupos",
     plan3Feat3: "Estatísticas avançadas de todo o clube",
-    plan3Feat4: "Suporte prioritário e eventos públicos personalizados",
+    plan3Feat4: "Eventos públicos personalizados",
     pricingCta: "Começar com a turma",
     faqTitle: "Perguntas Frequentes",
+    commonQuestions: "Dúvidas comuns",
     faqSubtitle: "Tudo o que você precisa saber para começar a usar com seus amigos.",
     faqQ1: "Como funciona o Velozty?",
     faqA1: "Você cria uma corrida ou pedal, manda o convite para os amigos e todos entram pelo celular. Durante o encontro, o mapa mostra onde cada pessoa está para a turma acompanhar junto.",
@@ -96,11 +102,19 @@ const translations = {
     footerText: "Velozty. Criado com carinho para aproximar pessoas e espalhar diversão.",
     footerPrivacy: "Políticas de Privacidade",
     footerTerms: "Termos de Uso",
+    showcaseTitleBadge: "A adrenalina do asfalto",
+    showcaseTitle: "Sinta a vibe da disputa",
+    showcaseSubtitle: "Não importa o seu esporte, o Velozty acompanha cada quilômetro com precisão.",
+    showcaseCyclists: "Para os Ciclistas",
+    showcaseCyclistsDesc: "Organize pedais com a galera, dispute sprints ao vivo e acompanhe a posição de cada ciclista no mapa em tempo real.",
+    showcaseRunners: "Para os Corredores",
+    showcaseRunnersDesc: "Monitore o ritmo por quilômetro (pace), gaps em metros e lidere o pelotão de corrida.",
   },
   en: {
     heroBadge: "Velozty: Who is fastest?",
     navFeatures: "Features",
     navPricing: "Pricing",
+    themeToggle: "Toggle theme",
     heroTitlePre: "VELOZTY:",
     heroTitleVolt: "WHO IS",
     heroTitlePost: "FASTEST?",
@@ -116,11 +130,14 @@ const translations = {
     simHr: "Excitement",
     simGForce: "Energy",
     simPressToAccelerate: "Hold to speed up",
+    simAccelerating: "Speeding up",
     simLimitWarning: "Now it is getting real!",
+    crewRhythm: "Crew rhythm",
+    forTheCrew: "For the crew",
     featuresTitle: "Everything You and Your Crew Need",
     featuresSubtitle: "Simple, lightweight, and super fun tools for your weekend.",
-    feat1Title: "Everyone on the Map",
-    feat1Desc: "See where every friend is on the map in real time. Perfect for keeping the crew together!",
+    feat1Title: "Live Positioning & Gaps",
+    feat1Desc: "Track your exact placement in the race and watch the distance in meters to the pilot directly ahead or draft-riding right behind you in real time.",
     feat2Title: "Light & Hassle-Free",
     feat2Desc: "Runs straight in your phone's browser, no heavy installations needed. Just click and go.",
     feat3Title: "Quick Invites",
@@ -128,6 +145,7 @@ const translations = {
     feat4Title: "Crew Leaderboards",
     feat4Desc: "Claim your weekend champion title on the Hall of Fame and lead the general crew scores.",
     pricingTitle: "Free Access for Everyone",
+    simplePlans: "Simple plans",
     pricingSubtitle: "Choose the best way to ride and run with your friends.",
     plan1Name: "Weekend Crew",
     plan1Price: "Free",
@@ -152,9 +170,10 @@ const translations = {
     plan3Feat1: "Live stream overlays (OBS/Twitch support)",
     plan3Feat2: "Management panel for large groups",
     plan3Feat3: "Advanced comparative telemetry for the club",
-    plan3Feat4: "Priority support & custom public events",
+    plan3Feat4: "Custom public events",
     pricingCta: "Start with friends",
     faqTitle: "Frequently Asked Questions",
+    commonQuestions: "Common questions",
     faqSubtitle: "Everything you need to know to start riding with friends.",
     faqQ1: "How does Velozty work?",
     faqA1: "Create a run or ride, send the invite, and everyone joins from their phone. During the activity, the map shows where each person is so the group can follow along.",
@@ -167,11 +186,19 @@ const translations = {
     footerText: "Velozty. Built with love to connect people and spread joy.",
     footerPrivacy: "Privacy Policy",
     footerTerms: "Terms of Use",
+    showcaseTitleBadge: "The rush of the pavement",
+    showcaseTitle: "Feel the thrill of the race",
+    showcaseSubtitle: "No matter your sport, Velozty tracks every kilometer with precision.",
+    showcaseCyclists: "For Cyclists",
+    showcaseCyclistsDesc: "Organize group rides, compete in live sprints, and track every rider's position on the map in real time.",
+    showcaseRunners: "For Runners",
+    showcaseRunnersDesc: "Monitor pace per kilometer, gaps in meters, and lead the running pack.",
   },
   es: {
     heroBadge: "Velozty: Who is fastest?",
     navFeatures: "Recursos",
     navPricing: "Planes",
+    themeToggle: "Cambiar tema",
     heroTitlePre: "VELOZTY:",
     heroTitleVolt: "WHO IS",
     heroTitlePost: "FASTEST?",
@@ -187,11 +214,14 @@ const translations = {
     simHr: "Emoción",
     simGForce: "Energía",
     simPressToAccelerate: "Mantén para acelerar",
+    simAccelerating: "Acelerando",
     simLimitWarning: "¡Ahora va en serio!",
+    crewRhythm: "Ritmo del grupo",
+    forTheCrew: "Para el grupo",
     featuresTitle: "Todo lo que tú y tu grupo necesitan",
     featuresSubtitle: "Herramientas sencillas, ligeras y muy divertidas para tu fin de semana.",
-    feat1Title: "Todos en el Mapa",
-    feat1Desc: "Mira dónde está cada amigo en el mapa en tiempo real. ¡Perfecto para mantener al grupo unido!",
+    feat1Title: "Clasificación y Gaps en Vivo",
+    feat1Desc: "Descubre tu posición exacta en la carrera y mira en tiempo real la distancia en metros con el piloto de adelante o el que te sigue de cerca.",
     feat2Title: "Ligero y Sin Complicaciones",
     feat2Desc: "Funciona directamente en el navegador del móvil, sin instalar apps pesadas. Clic y listo.",
     feat3Title: "Invitación en Segundos",
@@ -199,6 +229,7 @@ const translations = {
     feat4Title: "Clasificación del Grupo",
     feat4Desc: "Conságrate campeón del fin de semana en el Salón de la Fama y lidera las puntuaciones del grupo.",
     pricingTitle: "Acceso Libre para Todos",
+    simplePlans: "Planes simples",
     pricingSubtitle: "Elige la mejor manera de rodar y correr con tus amigos.",
     plan1Name: "Grupo del Finde",
     plan1Price: "Gratis",
@@ -223,9 +254,10 @@ const translations = {
     plan3Feat1: "Sobreposiciones en vivo para transmisiones (OBS/Twitch)",
     plan3Feat2: "Panel de control para grupos numerosos",
     plan3Feat3: "Análisis comparativo de telemetría para el club",
-    plan3Feat4: "Soporte VIP y hospedaje de eventos personalizados",
+    plan3Feat4: "Eventos públicos personalizados",
     pricingCta: "Empezar con amigos",
     faqTitle: "Preguntas Frecuentes",
+    commonQuestions: "Preguntas comunes",
     faqSubtitle: "Todo lo que necesitas saber para empezar a jugar con amigos.",
     faqQ1: "¿Cómo funciona Velozty?",
     faqA1: "Crea una carrera o rodada, envía la invitación y todos entran desde el móvil. Durante la actividad, el mapa muestra dónde está cada persona para que el grupo acompañe junto.",
@@ -237,7 +269,14 @@ const translations = {
     faqA4: "¡Sí! Al crear un reto o grupo ciclista, puedes elegir el modo Privado. Así, solo quienes introduzcan tu código específico de 6 dígitos podrán unirse a tu mapa.",
     footerText: "Velozty. Creado con amor para conectar personas y compartir risas.",
     footerPrivacy: "Políticas de Privacidad",
-    footerTerms: "Términos de Uso",
+    footerTerms: "Termos de Uso",
+    showcaseTitleBadge: "La adrenalina del asfalto",
+    showcaseTitle: "Siente la vibración de la carrera",
+    showcaseSubtitle: "No importa tu deporte, Velozty sigue cada kilómetro con precisión.",
+    showcaseCyclists: "Para Ciclistas",
+    showcaseCyclistsDesc: "Organiza rutas grupales, compite en sprints en vivo y sigue la posición de cada ciclista en el mapa en tiempo real.",
+    showcaseRunners: "Para Corredores",
+    showcaseRunnersDesc: "Monitorea el ritmo por kilómetro (pace), diferencias en metros y lidera el grupo.",
   }
 };
 
@@ -351,7 +390,7 @@ export const LandingPage: React.FC = () => {
           <button 
             onClick={toggleTheme}
             className="p-2.5 rounded-xl border border-white/10 bg-white/3 hover:bg-white/8 text-mutedgray hover:text-white transition-all focus:outline-none"
-            title="Toggle Theme"
+            title={t.themeToggle}
           >
             {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4 text-volt" />}
           </button>
@@ -560,7 +599,7 @@ export const LandingPage: React.FC = () => {
                   />
                 )}
               </svg>
-              <div className="absolute top-2 left-2 text-[8px] font-black uppercase tracking-wider text-mutedgray/60 font-mono">RITMO DA TURMA</div>
+              <div className="absolute top-2 left-2 text-[8px] font-black uppercase tracking-wider text-mutedgray/60 font-mono">{t.crewRhythm}</div>
             </div>
 
             {/* Limit Warning banner if high speed reached */}
@@ -585,11 +624,104 @@ export const LandingPage: React.FC = () => {
             >
               <div className="flex items-center justify-center gap-2">
                 <Gauge className={`h-4 w-4 ${isAccelerating ? "animate-spin" : ""}`} />
-                {isAccelerating ? "Acelerando" : t.simPressToAccelerate}
+                {isAccelerating ? t.simAccelerating : t.simPressToAccelerate}
               </div>
             </button>
             <p className="text-[9px] font-black text-center text-mutedgray/50 uppercase tracking-widest mt-2">{t.simSubtitle}</p>
           </Card>
+        </div>
+      </section>
+
+      {/* 2.5 SPORTS SHOWCASE SECTION */}
+      <section className="relative z-10 max-w-7xl mx-auto px-4 md:px-8 py-20 border-t border-white/5 overflow-hidden">
+        {/* Glow Effects */}
+        <div className="absolute top-1/2 left-1/4 -translate-y-1/2 w-72 h-72 bg-volt/5 rounded-full filter blur-3xl opacity-40 pointer-events-none" />
+        <div className="absolute top-1/2 right-1/4 -translate-y-1/2 w-72 h-72 bg-hyperpink/5 rounded-full filter blur-3xl opacity-40 pointer-events-none" />
+
+        {/* Section Title */}
+        <div className="text-center max-w-3xl mx-auto mb-16 select-none">
+          <span className="text-[9px] font-black tracking-[0.25em] text-hyperpink uppercase block mb-2">{t.showcaseTitleBadge}</span>
+          <h2 className={`text-3xl md:text-5xl font-black uppercase italic tracking-tight ${
+            theme === "light" ? "text-slate-900" : "text-white"
+          }`}>
+            {t.showcaseTitle}
+          </h2>
+          <p className={`text-xs font-black uppercase mt-3 tracking-wide leading-relaxed ${
+            theme === "light" ? "text-slate-600" : "text-mutedgray"
+          }`}>
+            {t.showcaseSubtitle}
+          </p>
+        </div>
+
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch max-w-5xl mx-auto">
+          
+          {/* Card 1: Cyclists */}
+          <div className={`group overflow-hidden rounded-3xl border transition-all duration-300 flex flex-col justify-between ${
+            theme === "light"
+              ? "bg-white border-slate-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.04)]"
+              : "bg-[#101018]/95 border-white/10 shadow-[0_0_15px_rgba(198,255,0,0.05)] hover:border-volt/30"
+          }`}>
+            <div className="relative aspect-[16/10] w-full overflow-hidden bg-black/5">
+              <img 
+                src="/images/landing-cyclists.png" 
+                alt={t.showcaseCyclists}
+                className="w-full h-full object-cover object-right transition-transform duration-700 ease-out group-hover:scale-105"
+              />
+              
+              {/* Float badge */}
+              <div className="absolute top-4 left-4 bg-volt text-black text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-glow-volt">
+                CYCLING
+              </div>
+            </div>
+            
+            <div className="p-6 md:p-8 flex flex-col gap-3 flex-grow justify-start">
+              <h3 className={`text-lg font-black uppercase italic flex items-center gap-2 ${
+                theme === "light" ? "text-slate-900" : "text-white"
+              }`}>
+                <span className="text-volt">⚡</span> {t.showcaseCyclists}
+              </h3>
+              <p className={`text-xs font-semibold uppercase leading-relaxed tracking-wider ${
+                theme === "light" ? "text-slate-600" : "text-mutedgray"
+              }`}>
+                {t.showcaseCyclistsDesc}
+              </p>
+            </div>
+          </div>
+
+          {/* Card 2: Runners */}
+          <div className={`group overflow-hidden rounded-3xl border transition-all duration-300 flex flex-col justify-between ${
+            theme === "light"
+              ? "bg-white border-slate-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.04)]"
+              : "bg-[#101018]/95 border-white/10 shadow-[0_0_15px_rgba(255,43,214,0.05)] hover:border-hyperpink/30"
+          }`}>
+            <div className="relative aspect-[16/10] w-full overflow-hidden bg-black/5">
+              <img 
+                src="/images/landing-runners.png" 
+                alt={t.showcaseRunners}
+                className="w-full h-full object-cover object-right transition-transform duration-700 ease-out group-hover:scale-105"
+              />
+              
+              {/* Float badge */}
+              <div className="absolute top-4 left-4 bg-hyperpink text-white text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full shadow-glow-pink">
+                RUNNING
+              </div>
+            </div>
+            
+            <div className="p-6 md:p-8 flex flex-col gap-3 flex-grow justify-start">
+              <h3 className={`text-lg font-black uppercase italic flex items-center gap-2 ${
+                theme === "light" ? "text-slate-900" : "text-white"
+              }`}>
+                <span className="text-hyperpink">⚡</span> {t.showcaseRunners}
+              </h3>
+              <p className={`text-xs font-semibold uppercase leading-relaxed tracking-wider ${
+                theme === "light" ? "text-slate-600" : "text-mutedgray"
+              }`}>
+                {t.showcaseRunnersDesc}
+              </p>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -598,7 +730,7 @@ export const LandingPage: React.FC = () => {
         
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16 select-none">
-          <span className="text-[9px] font-black tracking-[0.25em] text-volt uppercase block mb-2">PARA A TURMA</span>
+          <span className="text-[9px] font-black tracking-[0.25em] text-volt uppercase block mb-2">{t.forTheCrew}</span>
           <h2 className="text-3xl md:text-4xl font-black uppercase italic tracking-tight">{t.featuresTitle}</h2>
           <p className="text-xs font-black uppercase text-mutedgray mt-2 tracking-wide leading-relaxed">{t.featuresSubtitle}</p>
         </div>
@@ -649,7 +781,7 @@ export const LandingPage: React.FC = () => {
         
         {/* Section Header */}
         <div className="text-center max-w-2xl mx-auto mb-16 select-none">
-          <span className="text-[9px] font-black tracking-[0.25em] text-hyperpink uppercase block mb-2">PLANOS SIMPLES</span>
+          <span className="text-[9px] font-black tracking-[0.25em] text-hyperpink uppercase block mb-2">{t.simplePlans}</span>
           <h2 className="text-3xl md:text-4xl font-black uppercase italic tracking-tight">{t.pricingTitle}</h2>
           <p className="text-xs font-black uppercase text-mutedgray mt-2 tracking-wide leading-relaxed">{t.pricingSubtitle}</p>
         </div>
@@ -804,7 +936,7 @@ export const LandingPage: React.FC = () => {
         
         {/* Section Header */}
         <div className="text-center mb-16 select-none">
-          <span className="text-[9px] font-black tracking-[0.25em] text-volt uppercase block mb-2">DÚVIDAS COMUNS</span>
+          <span className="text-[9px] font-black tracking-[0.25em] text-volt uppercase block mb-2">{t.commonQuestions}</span>
           <h2 className="text-3xl font-black uppercase italic tracking-tight">{t.faqTitle}</h2>
           <p className="text-xs font-black uppercase text-mutedgray mt-2 tracking-wide">{t.faqSubtitle}</p>
         </div>

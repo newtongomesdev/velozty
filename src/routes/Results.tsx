@@ -6,6 +6,7 @@ import { Card } from "../components/ui/Card";
 import { LeafletMap } from "../components/race/LeafletMap";
 import { AwardCard } from "../components/race/AwardCard";
 import { useI18n } from "../components/i18n/I18nProvider";
+import { logger } from "../lib/logger";
 import { 
   fetchRaceById, 
   fetchRaceParticipants, 
@@ -13,6 +14,7 @@ import {
   fetchRaceAwards,
 } from "../lib/supabase";
 import type { Race, RaceParticipant, RacePosition, RaceAward } from "../lib/supabase";
+import { getAdvancedRaceStats } from "../lib/raceExperience";
 import { 
   calculatePathDistance, 
   formatDistance, 
@@ -54,7 +56,7 @@ export const Results: React.FC = () => {
         setPositions(posData);
         setAwards(awardData);
       } catch (err: any) {
-        console.error("Error loading results datasets:", err);
+        logger.error("Error loading results datasets:", err);
         showToast(t("results.loadError"), "error");
       } finally {
         setLoading(false);
@@ -139,6 +141,8 @@ export const Results: React.FC = () => {
       abandoned: !!me.abandoned_at
     };
   }, [participants, finalLeaderboard, computedDistances]);
+
+  const advancedStats = useMemo(() => getAdvancedRaceStats(participants, positions), [participants, positions]);
 
   if (loading) {
     return (
@@ -276,6 +280,35 @@ export const Results: React.FC = () => {
         )}
 
         {/* 3. DOUBLE MAP AND LEADERBOARD COLLAPSIBLE */}
+        <div className="flex flex-col gap-3">
+          <h2 className="text-xs font-black tracking-widest text-white uppercase border-l-2 border-white pl-2">
+            {t("results.advancedStats")}
+          </h2>
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <Card className="p-4 border-white/5 bg-[#101018]/70">
+              <span className="text-[9px] font-black text-mutedgray uppercase tracking-widest">{t("results.completion")}</span>
+              <strong className="mt-1 block text-lg font-black text-volt">{advancedStats.completionRate}%</strong>
+            </Card>
+            <Card className="p-4 border-white/5 bg-[#101018]/70">
+              <span className="text-[9px] font-black text-mutedgray uppercase tracking-widest">{t("results.avgTime")}</span>
+              <strong className="mt-1 block text-lg font-black text-white font-mono">{advancedStats.averageFinishTimeMs ? formatDuration(advancedStats.averageFinishTimeMs) : "—"}</strong>
+            </Card>
+            <Card className="p-4 border-white/5 bg-[#101018]/70">
+              <span className="text-[9px] font-black text-mutedgray uppercase tracking-widest">{t("results.fastest")}</span>
+              <strong className="mt-1 block text-sm font-black text-white uppercase">{advancedStats.fastestParticipantName}</strong>
+            </Card>
+            <Card className="p-4 border-white/5 bg-[#101018]/70">
+              <span className="text-[9px] font-black text-mutedgray uppercase tracking-widest">{t("results.highestSpeed")}</span>
+              <strong className="mt-1 block text-sm font-black text-hyperpink uppercase">{advancedStats.topSpeedParticipantName}</strong>
+              <span className="text-[10px] text-mutedgray">{formatSpeed(advancedStats.topSpeedKmh)}</span>
+            </Card>
+            <Card className="p-4 border-white/5 bg-[#101018]/70">
+              <span className="text-[9px] font-black text-mutedgray uppercase tracking-widest">{t("results.gpsPoints")}</span>
+              <strong className="mt-1 block text-lg font-black text-white font-mono">{advancedStats.totalTelemetryPoints}</strong>
+            </Card>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           
           {/* Final leaderboard table */}

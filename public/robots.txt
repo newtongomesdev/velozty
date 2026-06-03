@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /app/
+Disallow: /overlay/
+Disallow: /transmissao/
+
+Sitemap: https://velozty.vercel.app/sitemap.xml

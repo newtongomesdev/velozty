@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { 
+import {
   supabase, 
   isUsingMock, 
   mockEmitter,
@@ -8,6 +8,7 @@ import {
   fetchRacePositions,
 } from "../lib/supabase";
 import type { Race, RaceParticipant, RacePosition } from "../lib/supabase";
+import { logger } from "../lib/logger";
 
 export function useRaceRealtime(raceId: string | undefined) {
   const [race, setRace] = useState<Race | null>(null);
@@ -40,7 +41,7 @@ export function useRaceRealtime(raceId: string | undefined) {
           setError(null);
         }
       } catch (err: any) {
-        console.error("Error loading initial race details:", err);
+        logger.error("Error loading initial race details:", err);
         if (isMounted) {
           setError(err.message || "Failed to load race setup");
         }
@@ -141,7 +142,7 @@ export function useRaceRealtime(raceId: string | undefined) {
       )
       .subscribe((status) => {
         if (status === "CHANNEL_ERROR") {
-          console.error("Realtime subscription channel error on race", rId);
+          logger.error("Realtime subscription channel error on race", rId);
         }
       });
 

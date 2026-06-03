@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Share2, Check, Copy } from "lucide-react";
 import { useToast } from "../ui/Toast";
 import { useI18n } from "../i18n/I18nProvider";
+import { logger } from "../../lib/logger";
 
 interface CopyInviteButtonProps {
   inviteCode: string;
@@ -26,7 +27,7 @@ export const CopyInviteButton: React.FC<CopyInviteButtonProps> = ({ inviteCode }
         url: getJoinLink(),
       });
     } catch (err) {
-      console.log("User cancelled or share failed", err);
+      logger.info("User cancelled or share failed", err);
     }
   };
 
@@ -37,7 +38,7 @@ export const CopyInviteButton: React.FC<CopyInviteButtonProps> = ({ inviteCode }
       showToast(t("share.copied"), "success");
       setTimeout(() => setCopied(false), 2500);
     } catch (err) {
-      console.error("Failed to copy link:", err);
+      logger.error("Failed to copy link:", err);
       showToast(t("share.copyError"), "error");
     }
   };

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Velozty: Who is fastest?</title>
+  <desc id="desc">Imagem social do Velozty com a pergunta Who is fastest?</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#f7f8fb"/>
+      <stop offset="0.52" stop-color="#edf0f5"/>
+      <stop offset="1" stop-color="#ffffff"/>
+    </linearGradient>
+    <radialGradient id="volt" cx="20%" cy="20%" r="55%">
+      <stop offset="0" stop-color="#c6ff00" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#c6ff00" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="pink" cx="88%" cy="75%" r="55%">
+      <stop offset="0" stop-color="#ff2bd6" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#ff2bd6" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#volt)"/>
+  <rect width="1200" height="630" fill="url(#pink)"/>
+  <g transform="translate(86 92)">
+    <rect x="0" y="0" width="306" height="54" rx="27" fill="#c6ff00" fill-opacity="0.16" stroke="#8fbd00" stroke-opacity="0.28"/>
+    <circle cx="31" cy="27" r="7" fill="#8fbd00"/>
+    <text x="52" y="34" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="900" letter-spacing="1.6" fill="#4f7a00">VELOZTY</text>
+  </g>
+  <g transform="translate(82 176)" font-family="Arial Black, Arial, Helvetica, sans-serif" font-style="italic" font-weight="900" letter-spacing="-7">
+    <text x="0" y="0" dominant-baseline="hanging" font-size="104" fill="#090b18">VELOZTY:</text>
+    <text x="0" y="118" dominant-baseline="hanging" font-size="104" fill="#5f9100">WHO IS</text>
+    <text x="0" y="236" dominant-baseline="hanging" font-size="104" fill="#111827">FASTEST?</text>
+  </g>
+  <text x="86" y="548" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" fill="#4b5563">
+    Crie corridas. Desafie amigos. Acompanhe no mapa em tempo real.
+  </text>
+</svg>

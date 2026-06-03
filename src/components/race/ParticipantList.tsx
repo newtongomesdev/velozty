@@ -1,21 +1,28 @@
 import React from "react";
 import { CheckCircle2, Navigation, AlertCircle, Hourglass } from "lucide-react";
-import type { RaceParticipant } from "../../lib/supabase";
-import { formatDuration, formatSpeed } from "../../lib/geo";
+import { formatDuration, formatSpeed, formatDistance } from "../../lib/geo";
 import { useI18n } from "../i18n/I18nProvider";
+import type { RaceParticipant } from "../../lib/supabase";
 
 interface ParticipantListProps {
   participants: RaceParticipant[];
   hostUserId?: string;
   currentUserUserId?: string;
+  latestPositions?: { [partId: string]: { lat: number; lng: number; speed_kmh: number; distance_to_finish_m: number } };
 }
 
 export const ParticipantList: React.FC<ParticipantListProps> = ({
   participants,
   hostUserId,
   currentUserUserId,
+  latestPositions,
 }) => {
   const { t } = useI18n();
+
+  // Get current user's participant record for relative distance comparison
+  const currentUserPart = participants.find(p => p.user_id === currentUserUserId);
+  const myPos = currentUserPart ? latestPositions?.[currentUserPart.id] : null;
+  const myDist = myPos ? Number(myPos.distance_to_finish_m) : null;
   
   // Sort participants logically: finished first (by finish time), then active, then lobby, then abandoned
   const sortedParticipants = [...participants].sort((a, b) => {
@@ -123,6 +130,43 @@ export const ParticipantList: React.FC<ParticipantListProps> = ({
                         {t("participants.stats", { time: formatDuration(p.finish_time_ms), speed: formatSpeed(p.top_speed_kmh) })}
                       </span>
                     )}
+                    {p.started_at && !p.finished_at && !p.abandoned_at && latestPositions?.[p.id] && (() => {
+                      const pos = latestPositions[p.id];
+                      const pDist = Number(pos.distance_to_finish_m);
+                      
+                      let relativeBadge = null;
+                      if (!isCurrentUser && myDist !== null) {
+                        const diff = pDist - myDist;
+                        if (diff < 0) {
+                          relativeBadge = (
+                            <span className="text-volt font-black font-mono text-[10px] flex items-center gap-0.5 bg-volt/10 px-1.5 py-0.5 rounded border border-volt/20">
+                              ▲ {formatDistance(Math.abs(diff))} {t("hud.ahead")}
+                            </span>
+                          );
+                        } else if (diff > 0) {
+                          relativeBadge = (
+                            <span className="text-hyperpink font-black font-mono text-[10px] flex items-center gap-0.5 bg-hyperpink/10 px-1.5 py-0.5 rounded border border-hyperpink/20">
+                              ▼ {formatDistance(diff)} {t("hud.behind")}
+                            </span>
+                          );
+                        } else {
+                          relativeBadge = (
+                            <span className="text-white/55 font-black font-mono text-[10px] bg-white/5 px-1.5 py-0.5 rounded border border-white/10">
+                              = 0m
+                            </span>
+                          );
+                        }
+                      }
+
+                      return (
+                        <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                          <span className="text-[10px] font-bold text-mutedgray font-mono">
+                            {formatSpeed(pos.speed_kmh)} • {t("hud.remaining")}: {formatDistance(pDist)}
+                          </span>
+                          {relativeBadge}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

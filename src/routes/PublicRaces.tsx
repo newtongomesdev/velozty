@@ -4,6 +4,7 @@ import { useToast } from "../components/ui/Toast";
 import { Card, CardTitle } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { useI18n } from "../components/i18n/I18nProvider";
+import { logger } from "../lib/logger";
 import { 
   fetchPublicRaces, 
   fetchRaceParticipants, 
@@ -65,7 +66,7 @@ export const PublicRaces: React.FC = () => {
         setGpsStatus("available");
       },
       (err) => {
-        console.warn("Geolocation permission error in lobby:", err);
+        logger.warn("Geolocation permission error in lobby:", err);
         setGpsStatus("denied");
       },
       { enableHighAccuracy: false, timeout: 6000 }
@@ -106,7 +107,7 @@ export const PublicRaces: React.FC = () => {
           try {
             participants = await fetchRaceParticipants(race.id);
           } catch (e) {
-            console.error("Could not fetch participants for race " + race.id, e);
+            logger.error("Could not fetch participants for race " + race.id, e);
           }
 
           return {
@@ -127,7 +128,7 @@ export const PublicRaces: React.FC = () => {
 
       setRaces(sorted);
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       showToast(t("publicRaces.syncError"), "error");
     } finally {
       setLoading(false);
@@ -148,7 +149,7 @@ export const PublicRaces: React.FC = () => {
       showToast(t("publicRaces.joined"), "success");
       navigate(`/app/races/${race.id}`);
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       showToast(err.message || t("publicRaces.joinError"), "error");
     } finally {
       setJoiningId(null);

@@ -7,7 +7,7 @@ import { Card, CardTitle } from "../components/ui/Card";
 import { useI18n } from "../components/i18n/I18nProvider";
 import { useTheme } from "../App";
 import { getNotificationCapability, getWakeLockStatus, requestPwaNotifications, requestScreenWakeLock, type NotificationCapability, type WakeLockStatus } from "../lib/devicePermissions";
-import { 
+import {
   cancelRace,
   createProfilePhoto,
   deleteMyAccount,
@@ -19,12 +19,14 @@ import {
   getStravaAuthorizationUrl,
   joinRace,
   markNotificationsRead,
+  MAX_IMAGE_UPLOAD_BYTES,
   uploadMediaImage,
   updateUserProfile,
   isValidUsernameFormat,
   isUsernameAvailable
 } from "../lib/supabase";
 import type { AppNotification, ProfilePhoto, Race } from "../lib/supabase";
+import { sanitizeImageUrl } from "../lib/sanitize";
 import { 
   Plus, 
   LogOut, 
@@ -167,7 +169,7 @@ export const Dashboard: React.FC = () => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
       showToast(t("dashboard.photoTooLarge"), "warning");
       return;
     }
@@ -193,7 +195,7 @@ export const Dashboard: React.FC = () => {
     const file = e.target.files?.[0];
     e.target.value = "";
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
+    if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
       showToast(t("dashboard.photoTooLarge"), "warning");
       return;
     }
@@ -576,11 +578,11 @@ export const Dashboard: React.FC = () => {
           <div 
             onClick={() => setShowProfileModal(true)}
             className="flex items-center gap-3 cursor-pointer hover:opacity-90 active:scale-98 transition-all"
-            title="Visualizar Perfil"
+            title={t("dashboard.viewProfile")}
           >
             <div className="w-10 h-10 rounded-2xl overflow-hidden bg-volt flex items-center justify-center text-black font-black uppercase shadow-[0_0_12px_#C6FF00]">
-                {user?.avatar_url ? (
-                  <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                {sanitizeImageUrl(user?.avatar_url) ? (
+                  <img src={sanitizeImageUrl(user?.avatar_url)} alt="Avatar" className="w-full h-full object-cover" />
                 ) : (
                   <span>{user?.display_name.slice(0, 2)}</span>
                 )}
@@ -621,13 +623,13 @@ export const Dashboard: React.FC = () => {
             </button>
 
             {showNotifications && (
-              <div className="fixed right-4 top-24 z-[100000] w-[min(92vw,340px)] rounded-2xl border border-white/10 bg-[#101018]/98 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.55)] backdrop-blur-xl md:right-[max(1rem,calc((100vw-56rem)/2+1rem))]">
+              <div className="velozty-notifications-panel absolute right-0 top-full z-[100000] mt-3 w-[min(92vw,340px)] rounded-2xl border p-3 backdrop-blur-xl">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="text-[10px] font-black uppercase tracking-widest text-volt">{t("dashboard.notifications")}</span>
                   <button
                     type="button"
                     onClick={() => setShowNotifications(false)}
-                    className="rounded-lg p-1 text-mutedgray hover:text-white"
+                    className="rounded-lg p-1 text-mutedgray hover:text-volt"
                   >
                     <X className="h-3.5 w-3.5" />
                   </button>
@@ -641,7 +643,7 @@ export const Dashboard: React.FC = () => {
                         key={notification.id}
                         type="button"
                         onClick={() => handleOpenNotificationTarget(notification.target_url)}
-                        className="rounded-xl border border-white/5 bg-white/5 p-3 text-left hover:border-volt/30 hover:bg-volt/10"
+                        className="velozty-notification-item rounded-xl border p-3 text-left hover:border-volt/30 hover:bg-volt/10"
                       >
                         <span className="block text-xs font-black uppercase text-white">{notification.title}</span>
                         {notification.body && (
@@ -757,7 +759,7 @@ export const Dashboard: React.FC = () => {
                 type="text"
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
-                placeholder="EX: PAULIS"
+                placeholder={t("dashboard.entryCodePlaceholder")}
                 maxLength={8}
                 required
                 className="min-w-0 px-3 py-2.5 bg-black/45 border border-white/10 rounded-xl text-sm font-black text-center text-white focus:outline-none focus:border-volt tracking-widest uppercase placeholder-white/10 font-mono"
@@ -953,9 +955,9 @@ export const Dashboard: React.FC = () => {
                   onClick={() => fileInputRef.current?.click()}
                   title={t("dashboard.clickPhoto")}
                 >
-                  {avatarPreview ? (
+                  {sanitizeImageUrl(avatarPreview) ? (
                     <img
-                      src={avatarPreview}
+                      src={sanitizeImageUrl(avatarPreview)}
                       alt="Avatar"
                       className="w-full h-full object-cover"
                     />
@@ -1006,12 +1008,14 @@ export const Dashboard: React.FC = () => {
                 ) : (
                   <div className="grid grid-cols-3 gap-2">
                     {profilePhotos.slice(0, 6).map((photo) => (
-                      <img
-                        key={photo.id}
-                        src={photo.image_url}
-                        alt={photo.caption || t("dashboard.profilePhotos")}
-                        className="aspect-square w-full rounded-xl border border-white/10 object-cover"
-                      />
+                      sanitizeImageUrl(photo.image_url) ? (
+                        <img
+                          key={photo.id}
+                          src={sanitizeImageUrl(photo.image_url)}
+                          alt={photo.caption || t("dashboard.profilePhotos")}
+                          className="aspect-square w-full rounded-xl border border-white/10 object-cover"
+                        />
+                      ) : null
                     ))}
                   </div>
                 )}
@@ -1101,7 +1105,7 @@ export const Dashboard: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex flex-col gap-1.5">
-                  <label className="text-[9px] font-black text-mutedgray uppercase tracking-wider">Email</label>
+                  <label className="text-[9px] font-black text-mutedgray uppercase tracking-wider">{t("dashboard.email")}</label>
                   <input
                     type="text"
                     value={user?.email || "atleta@velozty.com"}
@@ -1148,7 +1152,7 @@ export const Dashboard: React.FC = () => {
                     type="url"
                     value={newWebsite}
                     onChange={(e) => setNewWebsite(e.target.value)}
-                    placeholder="https://your-site.com"
+                    placeholder={t("dashboard.websitePlaceholder")}
                     className="w-full pl-9 pr-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-volt placeholder-white/15"
                   />
                 </div>
@@ -1172,12 +1176,11 @@ export const Dashboard: React.FC = () => {
                     value={newGender}
                     onChange={(e) => setNewGender(e.target.value)}
                     required
-                    className="px-3 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-volt cursor-pointer appearance-none font-sans"
-                    style={{ backgroundPosition: "right 10px center", backgroundImage: "url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"12\" height=\"12\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"white\" stroke-width=\"2\"><path d=\"m6 9 6 6 6-6\"/></svg>')", backgroundRepeat: "no-repeat" }}
+                    className="profile-select px-3 py-2.5 border rounded-xl text-xs font-semibold focus:outline-none focus:border-volt cursor-pointer appearance-none font-sans"
                   >
-                    <option value="Masculino" className="bg-[#101018] text-white">{t("dashboard.male")}</option>
-                    <option value="Feminino" className="bg-[#101018] text-white">{t("dashboard.female")}</option>
-                    <option value="Outro" className="bg-[#101018] text-white">{t("dashboard.otherHidden")}</option>
+                    <option value="Masculino">{t("dashboard.male")}</option>
+                    <option value="Feminino">{t("dashboard.female")}</option>
+                    <option value="Outro">{t("dashboard.otherHidden")}</option>
                   </select>
                 </div>
               </div>
@@ -1190,7 +1193,7 @@ export const Dashboard: React.FC = () => {
                     type="text"
                     value={newCountry}
                     onChange={(e) => setNewCountry(e.target.value)}
-                    placeholder="Ex: Brasil"
+                    placeholder={t("dashboard.countryPlaceholder")}
                     className="px-3 py-2.5 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white focus:outline-none focus:border-volt placeholder-white/15"
                   />
                 </div>
@@ -1201,7 +1204,7 @@ export const Dashboard: React.FC = () => {
                     value={newStateVal}
                     onChange={(e) => setNewStateVal(e.target.value)}
                     maxLength={2}
-                    placeholder="UF"
+                    placeholder={t("dashboard.statePlaceholder")}
                     className="px-3 py-2.5 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white focus:outline-none focus:border-volt placeholder-white/15 uppercase text-center"
                   />
                 </div>
@@ -1211,7 +1214,7 @@ export const Dashboard: React.FC = () => {
                     type="text"
                     value={newCity}
                     onChange={(e) => setNewCity(e.target.value)}
-                    placeholder="Cidade"
+                    placeholder={t("dashboard.cityPlaceholder")}
                     className="px-3 py-2.5 bg-black/40 border border-white/10 rounded-xl text-[10px] font-bold text-white focus:outline-none focus:border-volt placeholder-white/15"
                   />
                 </div>

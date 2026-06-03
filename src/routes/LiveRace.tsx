@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../components/auth/AuthGuard";
 import { useToast } from "../components/ui/Toast";
@@ -12,6 +12,7 @@ import { useI18n } from "../components/i18n/I18nProvider";
 import { useRaceRealtime } from "../hooks/useRaceRealtime";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { releaseScreenWakeLock, requestScreenWakeLock, showRaceNotification } from "../lib/devicePermissions";
+import { buildVoiceCoachMessage, createOfflineTelemetryQueue, getOrganizerRaceSummary, type RaceTelemetryInput, type QueuedRaceTelemetry } from "../lib/raceExperience";
 import { 
   startRace, 
   postRacePosition, 
@@ -19,14 +20,33 @@ import {
   abandonRace, 
   finalizeRace,
 } from "../lib/supabase";
-import { Users, ShieldCheck, Flag, ChevronRight } from "lucide-react";
+import { Users, ShieldCheck, Flag, ChevronRight, Radio, Volume2, VolumeX } from "lucide-react";
+
+const TELEMETRY_QUEUE_KEY = "velozty_offline_telemetry";
+
+function loadQueuedTelemetry(): QueuedRaceTelemetry[] {
+  try {
+    return JSON.parse(localStorage.getItem(TELEMETRY_QUEUE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function loadQueuedTelemetryForRace(raceId: string | undefined): QueuedRaceTelemetry[] {
+  return loadQueuedTelemetry().filter((item) => item.race_id === raceId);
+}
+
+function saveQueuedTelemetryForRace(raceId: string | undefined, raceItems: QueuedRaceTelemetry[]) {
+  const otherRaceItems = loadQueuedTelemetry().filter((item) => item.race_id !== raceId);
+  localStorage.setItem(TELEMETRY_QUEUE_KEY, JSON.stringify([...otherRaceItems, ...raceItems]));
+}
 
 export const LiveRace: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   
   // Real-time Database Socket listener
   const { race, participants, positions, loading, error } = useRaceRealtime(id);
@@ -35,6 +55,11 @@ export const LiveRace: React.FC = () => {
   const [timeTrialStarted, setTimeTrialStarted] = useState(false);
   const [showFinishOverlay, setShowFinishOverlay] = useState(false);
   const [finalSessionStats, setFinalSessionStats] = useState<{ time: number; speed: number } | null>(null);
+  const [offlineBufferCount, setOfflineBufferCount] = useState(() => loadQueuedTelemetryForRace(id).length);
+  const [voiceCoachEnabled, setVoiceCoachEnabled] = useState(() => localStorage.getItem("velozty_voice_coach") !== "off");
+  const telemetryQueueRef = useRef(createOfflineTelemetryQueue(loadQueuedTelemetryForRace(id)));
+  const lastCoachAtRef = useRef(0);
+  const finishCoachSpokenRef = useRef(false);
 
   // Find local user's participant record in the race
   const currentParticipant = useMemo(() => {
@@ -101,6 +126,64 @@ export const LiveRace: React.FC = () => {
     return index !== -1 ? index + 1 : 1;
   }, [liveLeaderboard, currentParticipant]);
 
+  // Calculate relative distances to opponent ahead and behind
+  const opponentDistances = useMemo(() => {
+    if (!currentParticipant || !liveLeaderboard.length) {
+      return { ahead: null, behind: null, aheadName: null, behindName: null };
+    }
+    
+    // Find index of current user in the sorted leaderboard
+    const myIndex = liveLeaderboard.findIndex(p => p.id === currentParticipant.id);
+    if (myIndex === -1) {
+      return { ahead: null, behind: null, aheadName: null, behindName: null };
+    }
+    
+    const myPos = latestPositions[currentParticipant.id];
+    const myDist = myPos ? Number(myPos.distance_to_finish_m) : null;
+    
+    let ahead = null;
+    let aheadName = null;
+    let behind = null;
+    let behindName = null;
+    
+    // Find opponent ahead (myIndex - 1)
+    if (myIndex > 0) {
+      const oppAhead = liveLeaderboard[myIndex - 1];
+      if (!oppAhead.abandoned_at) {
+        aheadName = oppAhead.display_name;
+        if (oppAhead.finished_at && currentParticipant.finished_at) {
+          ahead = null;
+        } else {
+          const oppPos = latestPositions[oppAhead.id];
+          if (oppPos && myDist !== null) {
+            ahead = Math.max(0, myDist - Number(oppPos.distance_to_finish_m));
+          }
+        }
+      }
+    }
+    
+    // Find opponent behind (myIndex + 1)
+    if (myIndex < liveLeaderboard.length - 1) {
+      const oppBehind = liveLeaderboard[myIndex + 1];
+      if (!oppBehind.abandoned_at && !oppBehind.finished_at) {
+        behindName = oppBehind.display_name;
+        const oppPos = latestPositions[oppBehind.id];
+        if (oppPos && myDist !== null) {
+          behind = Math.max(0, Number(oppPos.distance_to_finish_m) - myDist);
+        }
+      }
+    }
+    
+    return { ahead, behind, aheadName, behindName };
+  }, [liveLeaderboard, currentParticipant, latestPositions]);
+
+  const organizerSummary = useMemo(() => getOrganizerRaceSummary(participants, positions), [participants, positions]);
+
+  const overlayUrl = useMemo(() => {
+    if (!id) return "";
+    return `${window.location.origin}/transmissao/${id}`;
+  }, [id]);
+
   // -------------------------------------------------------------
   // ACTIVE GPS TRACKING CORE
   // -------------------------------------------------------------
@@ -113,25 +196,50 @@ export const LiveRace: React.FC = () => {
                     (race.mode === "live" || timeTrialStarted);
 
   // Position trigger callback: fires roughly every 2 seconds from the sensor watch
-  const handlePositionUpdate = async (pos: any, distToFinish: number) => {
+  const flushTelemetryQueue = useCallback(async () => {
+    const sent = await telemetryQueueRef.current.flush(async (input) => {
+      if (!id || input.race_id !== id) return;
+      await postRacePosition(input);
+    });
+
+    saveQueuedTelemetryForRace(id, telemetryQueueRef.current.items());
+    setOfflineBufferCount(telemetryQueueRef.current.size());
+    return sent;
+  }, [id]);
+
+  const handlePositionUpdate = useCallback(async (pos: any, distToFinish: number) => {
     if (!id || !currentParticipant) return;
+    const telemetryInput: RaceTelemetryInput = {
+      race_id: id,
+      participant_id: currentParticipant.id,
+      lat: pos.lat,
+      lng: pos.lng,
+      speed_kmh: pos.speed,
+      distance_to_finish_m: distToFinish
+    };
     
     try {
-      await postRacePosition({
-        race_id: id,
-        participant_id: currentParticipant.id,
-        lat: pos.lat,
-        lng: pos.lng,
-        speed_kmh: pos.speed,
-        distance_to_finish_m: distToFinish
-      });
+      await postRacePosition(telemetryInput);
+      await flushTelemetryQueue();
     } catch (err) {
+      telemetryQueueRef.current.enqueue(telemetryInput);
+      saveQueuedTelemetryForRace(id, telemetryQueueRef.current.items());
+      setOfflineBufferCount(telemetryQueueRef.current.size());
       console.warn("Failed to transmit coordinate telemetry packet:", err);
     }
-  };
+  }, [currentParticipant, flushTelemetryQueue, id]);
+
+  useEffect(() => {
+    const handleOnline = () => {
+      flushTelemetryQueue().catch(() => undefined);
+    };
+
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [flushTelemetryQueue]);
 
   // Completion trigger callback: fires when distance to finish <= radius
-  const handleFinishReached = async (elapsedTimeMs: number, topSpeedKmh: number) => {
+  const handleFinishReached = useCallback(async (elapsedTimeMs: number, topSpeedKmh: number) => {
     if (!id || !currentParticipant) return;
     
     try {
@@ -142,7 +250,7 @@ export const LiveRace: React.FC = () => {
     } catch (err: any) {
       showToast(t("liveRace.finishedError"), "error");
     }
-  };
+  }, [currentParticipant, id, showToast, t]);
 
   const {
     currentPosition,
@@ -161,6 +269,53 @@ export const LiveRace: React.FC = () => {
     onPositionReceived: handlePositionUpdate,
     onFinishReached: handleFinishReached
   });
+
+  const speakCoach = useCallback((message: string, lang = "pt") => {
+    if (!voiceCoachEnabled || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(message);
+    if (lang === "en") {
+      utterance.lang = "en-US";
+    } else if (lang === "es") {
+      utterance.lang = "es-ES";
+    } else {
+      utterance.lang = "pt-BR";
+    }
+    utterance.rate = 1;
+    window.speechSynthesis.speak(utterance);
+  }, [voiceCoachEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem("velozty_voice_coach", voiceCoachEnabled ? "on" : "off");
+  }, [voiceCoachEnabled]);
+
+  useEffect(() => {
+    if (!gpsActive || !currentPosition) return;
+    const now = Date.now();
+    const shouldSpeakFinish = distanceToFinish !== null && distanceToFinish <= 100 && !finishCoachSpokenRef.current;
+    const shouldSpeakProgress = now - lastCoachAtRef.current > 45000;
+
+    if (!shouldSpeakFinish && !shouldSpeakProgress) return;
+
+    speakCoach(buildVoiceCoachMessage({
+      distanceToFinish,
+      rank: localRank,
+      totalParticipants: participants.filter((participant) => !participant.abandoned_at).length,
+      speedKmh: currentPosition.speed,
+      opponentAheadDistance: opponentDistances.ahead,
+      opponentAheadName: opponentDistances.aheadName,
+      locale,
+    }), locale);
+
+    if (shouldSpeakFinish) finishCoachSpokenRef.current = true;
+    lastCoachAtRef.current = now;
+  }, [currentPosition, distanceToFinish, gpsActive, localRank, participants, speakCoach, opponentDistances, locale]);
+
+  const handleCopyOverlay = async () => {
+    if (!overlayUrl) return;
+    await navigator.clipboard.writeText(overlayUrl);
+    showToast(t("liveRace.broadcastLinkCopied"), "success");
+  };
 
   // Calculate elapsed session timer
   const [elapsedTimeMs, setElapsedTimeMs] = useState(0);
@@ -388,10 +543,36 @@ export const LiveRace: React.FC = () => {
                 participants={participants} 
                 hostUserId={race.host_user_id} 
                 currentUserUserId={user?.id} 
+                latestPositions={latestPositions}
               />
             </Card>
 
             <CopyInviteButton inviteCode={race.invite_code} />
+
+            {isHost && (
+              <Card className="p-4 flex flex-col gap-3 border-white/10 bg-[#101018]/70">
+                <CardTitle className="text-xs flex items-center gap-2">
+                  <Radio className="h-4 w-4 text-volt" />
+                  {t("liveRace.organizerControl")}
+                </CardTitle>
+                <div className="grid grid-cols-2 gap-2 text-center">
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+                    <span className="block text-[9px] font-black uppercase tracking-widest text-mutedgray">{t("liveRace.activeShort")}</span>
+                    <strong className="text-lg text-white">{organizerSummary.active}</strong>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-black/20 p-3">
+                    <span className="block text-[9px] font-black uppercase tracking-widest text-mutedgray">{t("liveRace.readyShort")}</span>
+                    <strong className="text-lg text-volt">{organizerSummary.total}</strong>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCopyOverlay}
+                  className="rounded-xl border border-volt/30 bg-volt/10 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-volt hover:bg-volt/20"
+                >
+                  {t("liveRace.copyBroadcastLink")}
+                </button>
+              </Card>
+            )}
 
             {/* Launch controls */}
             {isHost ? (
@@ -442,6 +623,36 @@ export const LiveRace: React.FC = () => {
         </span>
       </div>
 
+      <div className="absolute top-4 left-4 z-[1000] flex flex-col gap-2">
+        <button
+          onClick={() => setVoiceCoachEnabled((enabled) => !enabled)}
+          className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/15 bg-darkbg/85 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white backdrop-blur-md"
+        >
+          {voiceCoachEnabled ? <Volume2 className="h-3.5 w-3.5 text-volt" /> : <VolumeX className="h-3.5 w-3.5 text-mutedgray" />}
+          {t("liveRace.voice")}
+        </button>
+        {offlineBufferCount > 0 && (
+          <div className="pointer-events-auto rounded-full border border-yellow-400/40 bg-yellow-500/15 px-3 py-2 text-[10px] font-black uppercase tracking-widest text-yellow-200 backdrop-blur-md">
+            {t("liveRace.offlinePointsSaved", { count: offlineBufferCount })}
+          </div>
+        )}
+      </div>
+
+      {isHost && (
+        <div className="absolute top-4 right-4 z-[1000] hidden w-56 rounded-2xl border border-white/10 bg-darkbg/85 p-3 text-white backdrop-blur-md md:block">
+          <div className="mb-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-volt">
+            <Radio className="h-3.5 w-3.5" />
+            {t("liveRace.organizer")}
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-center text-xs">
+            <span className="rounded-xl bg-white/5 p-2">{t("liveRace.activeShort")}<br /><b>{organizerSummary.active}</b></span>
+            <span className="rounded-xl bg-white/5 p-2">{t("liveRace.finishedShort")}<br /><b>{organizerSummary.finished}</b></span>
+            <span className="rounded-xl bg-white/5 p-2">{t("liveRace.leaderShort")}<br /><b>{organizerSummary.leaderName}</b></span>
+            <span className="rounded-xl bg-white/5 p-2">{t("liveRace.maxShort")}<br /><b>{organizerSummary.topSpeedKmh.toFixed(1)} km/h</b></span>
+          </div>
+        </div>
+      )}
+
       {/* Interactive HUD overlaid over map */}
       <RaceHUD
         currentSpeed={currentPosition ? currentPosition.speed : 0}
@@ -457,6 +668,7 @@ export const LiveRace: React.FC = () => {
         onResume={resumeGps}
         onAbandon={handleAbandon}
         onFinalize={handleForceFinalize}
+        opponentDistances={opponentDistances}
       />
 
       {/* Giant Full Screen Leaflet Arena */}

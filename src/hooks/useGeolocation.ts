@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { detectLocale, getTranslation, LOCALE_STORAGE_KEY } from "../lib/i18n";
 import { haversineDistance, kmhFromMetersPerSecond } from "../lib/geo";
+import { logger } from "../lib/logger";
 
 export interface GeolocationPositionData {
   lat: number;
@@ -42,6 +43,7 @@ export function useGeolocation({
   const totalPausedTimeRef = useRef<number>(0);
   const pauseTimeRef = useRef<number | null>(null);
   const accumulatedTopSpeedRef = useRef<number>(0);
+  const lastAcceptedUpdateRef = useRef<number>(0);
   
   const lowSpeedStreakRef = useRef<number>(0);
   const pausedCoordsRef = useRef<{ lat: number; lng: number } | null>(null);
@@ -84,9 +86,15 @@ export function useGeolocation({
   const handleGeolocationUpdate = useCallback((position: GeolocationPosition) => {
     const { latitude: rawLat, longitude: rawLng, accuracy, speed: nativeSpeedMps } = position.coords;
     const timestamp = position.timestamp;
+    const accuracyMode = localStorage.getItem("velocity_gps_accuracy") || "high";
+    const minUpdateIntervalMs = accuracyMode === "standard" ? 2500 : 1000;
+
+    if (timestamp - lastAcceptedUpdateRef.current < minUpdateIntervalMs) {
+      return;
+    }
 
     // 1. GPS Filtering: Ignore extremely poor accuracy readings (drift prevention)
-    const maxAccuracy = localStorage.getItem("velocity_gps_accuracy") === "standard" ? 50 : 30;
+    const maxAccuracy = accuracyMode === "standard" ? 50 : 30;
     if (accuracy > maxAccuracy) {
       setGpsStatus("poor");
       return;
@@ -199,6 +207,7 @@ export function useGeolocation({
       timestamp
     };
 
+    lastAcceptedUpdateRef.current = timestamp;
     setCurrentPosition(positionData);
     lastPositionRef.current = positionData;
 
@@ -219,7 +228,7 @@ export function useGeolocation({
   }, [finishLat, finishLng, finishRadiusM, isPaused, stop, pause, resume, onPositionReceived, onFinishReached]);
 
   const handleGeolocationError = useCallback((error: GeolocationPositionError) => {
-    console.error("GPS Watch Position Error:", error);
+    logger.error("GPS Watch Position Error:", error);
     const locale = detectLocale(localStorage.getItem(LOCALE_STORAGE_KEY) || navigator.language);
     switch (error.code) {
       case error.PERMISSION_DENIED:
@@ -249,6 +258,7 @@ export function useGeolocation({
     totalPausedTimeRef.current = 0;
     pauseTimeRef.current = null;
     lastPositionRef.current = null;
+    lastAcceptedUpdateRef.current = 0;
     lowSpeedStreakRef.current = 0;
     pausedCoordsRef.current = null;
     emaLatRef.current = null;
@@ -261,8 +271,8 @@ export function useGeolocation({
       handleGeolocationError,
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
+        timeout: 8000,
+        maximumAge: localStorage.getItem("velocity_gps_accuracy") === "standard" ? 1500 : 0
       }
     );
   }, [isSupported, handleGeolocationUpdate, handleGeolocationError]);

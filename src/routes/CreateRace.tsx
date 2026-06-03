@@ -6,6 +6,7 @@ import { Card, CardTitle } from "../components/ui/Card";
 import { LeafletMap } from "../components/race/LeafletMap";
 import { useI18n } from "../components/i18n/I18nProvider";
 import { createRace, fetchRaceById, updateRace } from "../lib/supabase";
+import { logger } from "../lib/logger";
 import { z } from "zod";
 import { ArrowLeft, MapPin, Milestone, RotateCcw, HelpCircle, Navigation, Eye, EyeOff, CalendarClock, MapPinned, StickyNote } from "lucide-react";
 
@@ -77,7 +78,7 @@ export const CreateRace: React.FC = () => {
           setMapCenter(coords);
         },
         (err) => {
-          console.warn("Could not get initial user location for map centering:", err);
+          logger.warn("Could not get initial user location for map centering:", err);
         },
         { enableHighAccuracy: false, timeout: 5000 }
       );
@@ -123,7 +124,7 @@ export const CreateRace: React.FC = () => {
         setWaypoints([]);
         setRouteCoords(race.route_coords || [start, finish]);
       } catch (err: any) {
-        console.error(err);
+        logger.error(err);
         showToast(err.message || t("createRace.loadError"), "error");
         navigate("/app/dashboard");
       } finally {
@@ -156,7 +157,7 @@ export const CreateRace: React.FC = () => {
         }
       }
     } catch (err) {
-      console.warn("OSM Geocoding Nominatim offline:", err);
+      logger.warn("OSM Geocoding Nominatim offline:", err);
     }
   };
 
@@ -184,7 +185,7 @@ export const CreateRace: React.FC = () => {
         }
       }
     } catch (err) {
-      console.warn("OSM OSRM Routing offline, falling back to straight path line:", err);
+      logger.warn("OSM OSRM Routing offline, falling back to straight path line:", err);
       setRouteCoords([start, ...wps, finish]);
     }
   };
@@ -272,7 +273,7 @@ export const CreateRace: React.FC = () => {
           showToast(t("createRace.focused"), "success");
         },
         (err) => {
-          console.warn("Could not get user position:", err);
+          logger.warn("Could not get user position:", err);
           showToast(t("createRace.gpsError"), "error");
         },
         { enableHighAccuracy: true, timeout: 8000 }
@@ -345,7 +346,7 @@ export const CreateRace: React.FC = () => {
       showToast(t(isEditing ? "createRace.raceUpdated" : "createRace.raceCreated"), "success");
       navigate(`/app/races/${savedRace.id}`);
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       showToast(err.message || t(isEditing ? "createRace.updateError" : "createRace.createError"), "error");
     } finally {
       setLoading(false);
@@ -566,17 +567,17 @@ export const CreateRace: React.FC = () => {
                       type="text"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
-                      placeholder="Ex: City"
+                      placeholder={t("createRace.cityPlaceholder")}
                       className="px-3.5 py-3 bg-black/40 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt tracking-wide placeholder-white/15 transition-all"
                     />
                   </div>
                   <div className="flex flex-col gap-1.5">
-                    <label className="text-[9px] font-black text-mutedgray uppercase tracking-wider">Estado (UF)</label>
+                    <label className="text-[9px] font-black text-mutedgray uppercase tracking-wider">{t("createRace.state")}</label>
                     <input
                       type="text"
                       value={stateVal}
                       onChange={(e) => setStateVal(e.target.value)}
-                      placeholder="UF"
+                      placeholder={t("createRace.statePlaceholder")}
                       maxLength={2}
                       className="px-3.5 py-3 bg-black/40 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt tracking-wide placeholder-white/15 transition-all uppercase"
                     />
@@ -589,7 +590,7 @@ export const CreateRace: React.FC = () => {
                     type="text"
                     value={neighborhood}
                     onChange={(e) => setNeighborhood(e.target.value)}
-                    placeholder="Ex: Downtown"
+                    placeholder={t("createRace.neighborhoodPlaceholder")}
                     className="px-3.5 py-3 bg-black/40 border border-white/10 rounded-xl text-xs font-semibold text-white focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt tracking-wide placeholder-white/15 transition-all"
                   />
                 </div>

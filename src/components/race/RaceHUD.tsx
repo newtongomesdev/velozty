@@ -17,6 +17,12 @@ interface RaceHUDProps {
   onResume: () => void;
   onAbandon: () => void;
   onFinalize: () => void;
+  opponentDistances?: {
+    ahead: number | null;
+    behind: number | null;
+    aheadName: string | null;
+    behindName: string | null;
+  } | null;
 }
 
 export const RaceHUD: React.FC<RaceHUDProps> = ({
@@ -33,6 +39,7 @@ export const RaceHUD: React.FC<RaceHUDProps> = ({
   onResume,
   onAbandon,
   onFinalize,
+  opponentDistances,
 }) => {
   const [stopwatch, setStopwatch] = useState(0);
   const { t } = useI18n();
@@ -103,6 +110,45 @@ export const RaceHUD: React.FC<RaceHUDProps> = ({
             </div>
           )}
         </div>
+
+        {/* Relative Distances Section */}
+        {opponentDistances && (opponentDistances.ahead !== null || opponentDistances.behind !== null) && (
+          <div className="flex items-center justify-between gap-2 px-3 py-2 bg-black/40 border border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-wider">
+            <div className="flex-1 flex items-center justify-center gap-1.5 text-volt font-semibold">
+              {opponentDistances.ahead !== null ? (
+                <div className="flex flex-col items-center">
+                  <span className="text-[8px] text-mutedgray leading-tight uppercase font-medium">{t("hud.ahead")}</span>
+                  <span className="font-mono mt-0.5 text-volt font-black truncate max-w-[120px]">
+                    {opponentDistances.aheadName} (+{formatDistance(opponentDistances.ahead)})
+                  </span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center opacity-45">
+                  <span className="text-[8px] text-mutedgray leading-tight uppercase font-medium">{t("hud.ahead")}</span>
+                  <span className="font-mono mt-0.5 text-volt font-black">— {t("hud.leader")}</span>
+                </div>
+              )}
+            </div>
+            
+            <div className="h-6 w-px bg-white/10" />
+            
+            <div className="flex-1 flex items-center justify-center gap-1.5 text-hyperpink font-semibold">
+              {opponentDistances.behind !== null ? (
+                <div className="flex flex-col items-center">
+                  <span className="text-[8px] text-mutedgray leading-tight uppercase font-medium">{t("hud.behind")}</span>
+                  <span className="font-mono mt-0.5 text-hyperpink font-black truncate max-w-[120px]">
+                    {opponentDistances.behindName} (-{formatDistance(opponentDistances.behind)})
+                  </span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center opacity-45">
+                  <span className="text-[8px] text-mutedgray leading-tight uppercase font-medium">{t("hud.behind")}</span>
+                  <span className="font-mono mt-0.5 text-hyperpink font-black">— {t("hud.last")}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-2 border-t border-b border-white/5 py-4 text-center">
           

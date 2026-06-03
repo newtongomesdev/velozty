@@ -1,25 +1,14 @@
-import React, { useState, useEffect, createContext, useContext } from "react";
+import React, { Suspense, lazy, useCallback, useMemo, useState, useEffect, createContext, useContext } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ToastProvider } from "./components/ui/Toast";
-import { AuthProvider, AuthGuard } from "./components/auth/AuthGuard";
 import { I18nProvider } from "./components/i18n/I18nProvider";
 
-// Route View screens
-import LandingPage from "./routes/LandingPage";
-import Terms from "./routes/Terms";
-import Privacy from "./routes/Privacy";
-import Login from "./routes/Login";
-import Dashboard from "./routes/Dashboard";
-import CreateRace from "./routes/CreateRace";
-import JoinRace from "./routes/JoinRace";
-import LiveRace from "./routes/LiveRace";
-import Results from "./routes/Results";
-import PublicRaces from "./routes/PublicRaces";
-import WatchRace from "./routes/WatchRace";
-import HallOfFame from "./routes/HallOfFame";
-import Social from "./routes/Social";
-import PublicProfile from "./routes/PublicProfile";
-import StravaCallback from "./routes/StravaCallback";
+// Route View screens loaded on demand
+const LandingPage = lazy(() => import("./routes/LandingPage"));
+const Terms = lazy(() => import("./routes/Terms"));
+const Privacy = lazy(() => import("./routes/Privacy"));
+const RaceOverlay = lazy(() => import("./routes/RaceOverlay"));
+const AppBoundary = lazy(() => import("./routes/AppBoundary"));
 
 // ---------- Theme Context ----------
 interface ThemeContextValue {
@@ -34,6 +23,12 @@ export const ThemeContext = createContext<ThemeContextValue>({
 
 export const useTheme = () => useContext(ThemeContext);
 // -----------------------------------
+
+const RouteFallback = () => (
+  <div className="flex min-h-[100dvh] items-center justify-center bg-darkbg text-xs font-black uppercase tracking-widest text-mutedgray">
+    Carregando Velozty...
+  </div>
+);
 
 export const App: React.FC = () => {
   const themeStorageKey = "velocity_theme";
@@ -53,126 +48,37 @@ export const App: React.FC = () => {
     localStorage.setItem(themeStorageKey, theme);
   }, [theme]);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     localStorage.setItem(themePreferenceKey, "true");
     setTheme(prev => (prev === "dark" ? "light" : "dark"));
-  };
+  }, []);
+
+  const themeContextValue = useMemo(() => ({ theme, toggleTheme }), [theme]);
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={themeContextValue}>
       <I18nProvider>
         <BrowserRouter>
           <ToastProvider>
-            <AuthProvider>
               <div className="relative min-h-screen">
+                <Suspense fallback={<RouteFallback />}>
                 <Routes>
                 
                 {/* PUBLIC LANDING PAGE */}
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/privacy" element={<Privacy />} />
+                <Route path="/transmissao/:id" element={<RaceOverlay />} />
+                <Route path="/overlay/:id" element={<RaceOverlay />} />
                 
-                {/* APPLICATION ROUTE BOUNDARY */}
-                <Route path="/app">
-                  <Route index element={<Navigate to="/app/dashboard" replace />} />
-                  <Route path="login" element={<Login />} />
-                  <Route
-                    path="dashboard"
-                    element={
-                      <AuthGuard>
-                        <Dashboard />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route
-                    path="races/new"
-                    element={
-                      <AuthGuard>
-                        <CreateRace />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route
-                    path="races/public"
-                    element={
-                      <AuthGuard>
-                        <PublicRaces />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route
-                    path="hall-of-fame"
-                    element={
-                      <AuthGuard>
-                        <HallOfFame />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route
-                    path="social"
-                    element={
-                      <AuthGuard>
-                        <Social />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route
-                    path="profile/:id"
-                    element={
-                      <AuthGuard>
-                        <PublicProfile />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route
-                    path="strava/callback"
-                    element={
-                      <AuthGuard>
-                        <StravaCallback />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route path="watch/:id" element={<WatchRace />} />
-                  <Route
-                    path="join/:code"
-                    element={
-                      <AuthGuard>
-                        <JoinRace />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route
-                    path="races/:id/edit"
-                    element={
-                      <AuthGuard>
-                        <CreateRace />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route
-                    path="races/:id"
-                    element={
-                      <AuthGuard>
-                        <LiveRace />
-                      </AuthGuard>
-                    }
-                  />
-                  <Route
-                    path="races/:id/results"
-                    element={
-                      <AuthGuard>
-                        <Results />
-                      </AuthGuard>
-                    }
-                  />
-                </Route>
+                <Route path="/app/*" element={<AppBoundary />} />
 
                 {/* DEFAULT FALLBACK REDIRECT */}
                 <Route path="*" element={<Navigate to="/" replace />} />
                 
                 </Routes>
+                </Suspense>
               </div>
-            </AuthProvider>
           </ToastProvider>
         </BrowserRouter>
       </I18nProvider>

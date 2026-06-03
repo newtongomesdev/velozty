@@ -6,7 +6,8 @@ import { useToast } from "../components/ui/Toast";
 import { Button } from "../components/ui/Button";
 import { Card, CardTitle } from "../components/ui/Card";
 import { isUsernameAvailable, isValidUsernameFormat, suggestUsernames } from "../lib/supabase";
-import { ShieldCheck, UserPlus, Flame, Cpu } from "lucide-react";
+import { logger } from "../lib/logger";
+import { Eye, EyeOff, ShieldCheck, UserPlus, Flame, Cpu } from "lucide-react";
 
 const LGPD_CONSENT_KEY = "velozty_lgpd_consent";
 const TERMS_CONSENT_KEY = "velozty_terms_privacy_consent";
@@ -17,6 +18,8 @@ export const Login: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [authLoading, setAuthLoading] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -77,7 +80,7 @@ export const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) {
-      showToast(t("login.invalidEmail"), "warning");
+      showToast(t(isSignUp ? "login.invalidEmail" : "login.identifierRequired"), "warning");
       return;
     }
 
@@ -137,7 +140,7 @@ export const Login: React.FC = () => {
       showToast(t("login.loginSuccess"), "success");
       navigate("/app/dashboard");
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       showToast(err.message || t("login.authFailure"), "error");
     } finally {
       setAuthLoading(false);
@@ -145,7 +148,7 @@ export const Login: React.FC = () => {
   };
 
   const handleForgotPassword = async () => {
-    if (!email.trim()) {
+    if (!email.trim() || !email.includes("@")) {
       showToast(t("login.resetMissingEmail"), "warning");
       return;
     }
@@ -155,7 +158,7 @@ export const Login: React.FC = () => {
       await requestPasswordReset(email);
       showToast(t("login.resetSent"), "success");
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       showToast(err.message || t("login.resetError"), "error");
     } finally {
       setAuthLoading(false);
@@ -168,7 +171,7 @@ export const Login: React.FC = () => {
       await loginWithProvider(provider);
       showToast(t("login.socialSuccess", { provider: provider === "google" ? "Google" : "Apple" }), "success");
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       showToast(err.message || t("login.socialFailure"), "error");
     } finally {
       setAuthLoading(false);
@@ -211,16 +214,18 @@ export const Login: React.FC = () => {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           
-          {/* Email input */}
+          {/* Email or username input */}
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-bold text-mutedgray uppercase tracking-wider">{t("login.email")}</label>
+            <label className="text-[10px] font-bold text-mutedgray uppercase tracking-wider">
+              {isSignUp ? t("login.email") : t("login.emailOrUsername")}
+            </label>
             <input
-              type="email"
+              type={isSignUp ? "email" : "text"}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="piloto@velozty.com"
+              placeholder={isSignUp ? "piloto@velozty.com" : t("login.emailOrUsernamePlaceholder")}
               required
-              autoComplete="email"
+              autoComplete={isSignUp ? "email" : "username"}
               className="px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt tracking-wide placeholder-white/20 transition-all font-mono"
             />
           </div>
@@ -295,29 +300,51 @@ export const Login: React.FC = () => {
           {/* Password Input */}
           <div className="flex flex-col gap-1.5">
             <label className="text-[10px] font-bold text-mutedgray uppercase tracking-wider font-mono">{t("login.password")}</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              autoComplete={isSignUp ? "new-password" : "current-password"}
-              className="px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt tracking-wide placeholder-white/20 transition-all font-mono"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                autoComplete={isSignUp ? "new-password" : "current-password"}
+                className="w-full px-4 py-3 pr-12 bg-black/40 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-volt focus:ring-1 focus:ring-volt tracking-wide placeholder-white/20 transition-all font-mono"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-mutedgray hover:text-volt focus:outline-none"
+                aria-label={showPassword ? t("login.hidePassword") : t("login.showPassword")}
+                title={showPassword ? t("login.hidePassword") : t("login.showPassword")}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
 
           {isSignUp && (
             <div className="flex w-full flex-col gap-1.5 animate-slide-up">
               <label className="text-[10px] font-bold text-mutedgray uppercase tracking-wider font-mono">{t("login.confirmPassword")}</label>
-              <input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                autoComplete="new-password"
-                className="w-full px-4 py-3 bg-black/40 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-hyperpink focus:ring-1 focus:ring-hyperpink tracking-wide placeholder-white/20 transition-all font-mono"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  autoComplete="new-password"
+                  className="w-full px-4 py-3 pr-12 bg-black/40 border border-white/10 rounded-xl text-sm font-semibold text-white focus:outline-none focus:border-hyperpink focus:ring-1 focus:ring-hyperpink tracking-wide placeholder-white/20 transition-all font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((value) => !value)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-mutedgray hover:text-hyperpink focus:outline-none"
+                  aria-label={showConfirmPassword ? t("login.hidePassword") : t("login.showPassword")}
+                  title={showConfirmPassword ? t("login.hidePassword") : t("login.showPassword")}
+                >
+                  {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
             </div>
           )}
 

@@ -1,13 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentUser, isUsernameAvailable, mockLogin, mockLogout, isUsingMock, suggestUsernames, supabase, mockEmitter } from "../../lib/supabase";
+import { getCurrentUser, isUsernameAvailable, mockLogin, mockLogout, isUsingMock, resolveLoginEmail, suggestUsernames, supabase, mockEmitter } from "../../lib/supabase";
+import { normalizeLoginIdentifier } from "../../lib/authIdentifiers";
 import type { Profile } from "../../lib/supabase";
 import { useI18n } from "../i18n/I18nProvider";
+import { logger } from "../../lib/logger";
 
 interface AuthContextType {
   user: Profile | null;
   loading: boolean;
-  signInUser: (email: string, password: string) => Promise<void>;
+  signInUser: (identifier: string, password: string) => Promise<void>;
   signUpUser: (email: string, password: string, displayName: string, username: string) => Promise<{ needsEmailConfirmation: boolean }>;
   loginWithProvider: (provider: "google" | "apple") => Promise<void>;
   logoutUser: () => Promise<void>;
@@ -38,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(currentUser);
         }
       } catch (err) {
-        console.error("Error verifying authentication state:", err);
+        logger.error("Error verifying authentication state:", err);
       } finally {
         if (active) {
           setLoading(false);
@@ -48,40 +50,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     checkSession();
 
-    // Subscribe to changes
-    if (isUsingMock) {
-      const unsub = mockEmitter.subscribe("auth_change", (newUser: Profile | null) => {
+    // Always subscribe to custom auth_change events (e.g. from updateUserProfile)
+    const unsub = mockEmitter.subscribe("auth_change", (newUser: Profile | null) => {
+      if (active) {
         setUser(newUser);
-      });
-      return () => {
-        active = false;
-        unsub();
-      };
-    } else if (supabase) {
+      }
+    });
+
+    let authSub: { unsubscribe: () => void } | null = null;
+    if (supabase) {
       const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
         if (session?.user) {
           const u = await getCurrentUser(session.user);
-          setUser(u);
+          if (active) {
+            setUser(u);
+          }
         } else {
-          setUser(null);
+          if (active) {
+            setUser(null);
+          }
         }
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       });
-
-      return () => {
-        active = false;
-        subscription.unsubscribe();
-      };
+      authSub = subscription;
     }
 
     return () => {
       active = false;
+      unsub();
+      if (authSub) {
+        authSub.unsubscribe();
+      }
     };
   }, []);
 
-  const signInUser = async (email: string, password: string) => {
+  const signInUser = async (identifier: string, password: string) => {
     setLoading(true);
     try {
+      const loginIdentifier = normalizeLoginIdentifier(identifier);
+      const email = loginIdentifier.kind === "email" ? loginIdentifier.value : await resolveLoginEmail(loginIdentifier.value);
+      if (!email) {
+        throw new Error(t("login.usernameLoginNotFound"));
+      }
+
       if (isUsingMock) {
         const u = await mockLogin(email);
         setUser(u);
