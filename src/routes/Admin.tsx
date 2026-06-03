@@ -360,17 +360,17 @@ const Admin: React.FC = () => {
         <div className="sm:hidden relative w-full">
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-white/10 bg-white/5 text-xs font-black uppercase tracking-wider hover:bg-white/10"
+            className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-white/10 bg-white/5 text-xs font-black uppercase tracking-wider text-volt hover:bg-white/10"
           >
             <span className="flex items-center gap-2">
-              {activeTab === "dashboard" && <Activity className="h-4 w-4 text-volt" />}
-              {activeTab === "users" && <Users className="h-4 w-4 text-volt" />}
-              {activeTab === "social" && <MessageSquare className="h-4 w-4 text-volt" />}
-              {activeTab === "races" && <ShieldAlert className="h-4 w-4 text-volt" />}
-              {activeTab === "reports" && <Flag className="h-4 w-4 text-volt" />}
-              {activeTab === "volts" && <Zap className="h-4 w-4 text-volt" />}
-              {activeTab === "gallery" && <Image className="h-4 w-4 text-volt" />}
-              <span className="text-white dark:text-white">
+              {activeTab === "dashboard" && <Activity className="h-4 w-4" />}
+              {activeTab === "users" && <Users className="h-4 w-4" />}
+              {activeTab === "social" && <MessageSquare className="h-4 w-4" />}
+              {activeTab === "races" && <ShieldAlert className="h-4 w-4" />}
+              {activeTab === "reports" && <Flag className="h-4 w-4" />}
+              {activeTab === "volts" && <Zap className="h-4 w-4" />}
+              {activeTab === "gallery" && <Image className="h-4 w-4" />}
+              <span>
                 {activeTab === "dashboard" ? t("admin.tabDashboard") :
                  activeTab === "users" ? t("admin.tabUsers") :
                  activeTab === "social" ? t("admin.tabSocial") :
