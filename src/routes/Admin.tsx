@@ -50,6 +50,7 @@ const Admin: React.FC = () => {
   const { showToast } = useToast();
 
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
+  const [menuOpen, setMenuOpen] = useState(false);
   const [stats, setStats] = useState<AdminStats>({ users: 0, races: 0, posts: 0, volts: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -355,8 +356,86 @@ const Admin: React.FC = () => {
           </div>
         </div>
 
-        {/* Tab Selection */}
-        <div className="flex overflow-x-auto gap-1 border-b border-zinc-200 dark:border-white/10 w-full no-scrollbar touch-pan-x scroll-smooth">
+        {/* Mobile Tab Selector (Hamburger Menu) */}
+        <div className="sm:hidden relative w-full">
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="flex items-center justify-between w-full px-4 py-3 rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-100 dark:bg-zinc-900/80 text-xs font-black uppercase tracking-wider text-volt hover:bg-zinc-200 dark:hover:bg-zinc-800"
+          >
+            <span className="flex items-center gap-2">
+              {activeTab === "dashboard" && <Activity className="h-4 w-4" />}
+              {activeTab === "users" && <Users className="h-4 w-4" />}
+              {activeTab === "social" && <MessageSquare className="h-4 w-4" />}
+              {activeTab === "races" && <ShieldAlert className="h-4 w-4" />}
+              {activeTab === "reports" && <Flag className="h-4 w-4" />}
+              {activeTab === "volts" && <Zap className="h-4 w-4" />}
+              {activeTab === "gallery" && <Image className="h-4 w-4" />}
+              {activeTab === "dashboard" ? t("admin.tabDashboard") :
+               activeTab === "users" ? t("admin.tabUsers") :
+               activeTab === "social" ? t("admin.tabSocial") :
+               activeTab === "races" ? t("admin.tabRaces") :
+               activeTab === "reports" ? (t("report.adminTab") || "Denúncias") :
+               activeTab === "volts" ? "Volts" : "Galeria"}
+            </span>
+            <span className="text-sm font-bold">☰</span>
+          </button>
+          {menuOpen && (
+            <div className="absolute top-full left-0 right-0 mt-2 z-[99] rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-950 p-2 shadow-2xl flex flex-col gap-1">
+              <button
+                onClick={() => { setActiveTab("dashboard"); setMenuOpen(false); setSearchQuery(""); }}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "dashboard" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+              >
+                <Activity className="h-4 w-4" />
+                {t("admin.tabDashboard")}
+              </button>
+              <button
+                onClick={() => { setActiveTab("users"); setMenuOpen(false); setSearchQuery(""); }}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "users" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+              >
+                <Users className="h-4 w-4" />
+                {t("admin.tabUsers")}
+              </button>
+              <button
+                onClick={() => { setActiveTab("social"); setMenuOpen(false); setSearchQuery(""); }}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "social" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+              >
+                <MessageSquare className="h-4 w-4" />
+                {t("admin.tabSocial")}
+              </button>
+              <button
+                onClick={() => { setActiveTab("races"); setMenuOpen(false); setSearchQuery(""); }}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "races" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+              >
+                <ShieldAlert className="h-4 w-4" />
+                {t("admin.tabRaces")}
+              </button>
+              <button
+                onClick={() => { setActiveTab("reports"); setMenuOpen(false); setSearchQuery(""); }}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "reports" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+              >
+                <Flag className="h-4 w-4" />
+                {t("report.adminTab") || "Denúncias"}
+              </button>
+              <button
+                onClick={() => { setActiveTab("volts"); setMenuOpen(false); setSearchQuery(""); }}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "volts" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+              >
+                <Zap className="h-4 w-4" />
+                Volts
+              </button>
+              <button
+                onClick={() => { setActiveTab("gallery"); setMenuOpen(false); setSearchQuery(""); }}
+                className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider w-full ${activeTab === "gallery" ? "bg-volt text-black" : "text-mutedgray hover:bg-zinc-100 dark:hover:bg-white/5"}`}
+              >
+                <Image className="h-4 w-4" />
+                Galeria
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Tab Selection */}
+        <div className="hidden sm:flex overflow-x-auto gap-1 border-b border-zinc-200 dark:border-white/10 w-full no-scrollbar touch-pan-x scroll-smooth">
           <button
             onClick={() => { setActiveTab("dashboard"); setSearchQuery(""); }}
             className={`flex items-center gap-2 px-4 py-3 text-xs font-black uppercase tracking-wider transition-all whitespace-nowrap -mb-px border-b-2 ${
@@ -503,63 +582,64 @@ const Admin: React.FC = () => {
                 </div>
                 <div className="flex flex-col gap-3 min-w-0">
                   {filteredUsers.map(u => (
-                    <div key={u.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 bg-zinc-800/30 hover:bg-zinc-800/60 rounded-xl border border-white/5 gap-4 transition-colors min-w-0 w-full">
-                      <div className="flex items-center gap-3 min-w-0 w-full md:w-auto">
-                        <div className="w-10 h-10 rounded-xl overflow-hidden bg-zinc-800 border border-white/10 flex items-center justify-center shrink-0">
+                    <div key={u.id} className="flex items-center justify-between p-2.5 bg-zinc-800/30 hover:bg-zinc-800/60 rounded-xl border border-white/5 gap-3 transition-colors min-w-0 w-full text-xs">
+                      {/* Left: Avatar + Info */}
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <div className="w-9 h-9 rounded-xl overflow-hidden bg-zinc-800 border border-white/10 flex items-center justify-center shrink-0">
                           {u.avatar_url ? (
                             <img src={sanitizeImageUrl(u.avatar_url)} alt="Avatar" className="w-full h-full object-cover" />
                           ) : (
                             <span className="text-[10px] font-black uppercase">{u.display_name.slice(0,2)}</span>
                           )}
                         </div>
-                        <div className="flex flex-col min-w-0 flex-1">
-                          <span className="text-white font-bold text-sm leading-tight truncate block">{u.display_name}</span>
-                          {u.username && <span className="text-[10px] text-mutedgray font-mono truncate block">@{u.username}</span>}
-                          <span className="text-[9px] text-mutedgray font-mono md:hidden mt-0.5 truncate block">{u.email || "n/a"}</span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-white font-bold leading-tight truncate block text-sm">{u.display_name}</span>
+                          <span className="text-[10px] text-mutedgray font-mono truncate block">
+                            @{u.username} • <span className="opacity-70">{u.email || "n/a"}</span>
+                          </span>
                         </div>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between w-full md:w-auto gap-3 mt-3 pt-3 border-t border-white/5 md:border-none md:mt-0 md:pt-0 min-w-0">
-                        <div className="hidden md:block font-mono text-mutedgray text-[10px] truncate max-w-[150px] lg:max-w-[250px]">
-                          {u.email || "n/a"}
-                        </div>
+                      {/* Right: Compact Actions */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {/* Admin Badge/Button */}
+                        <button
+                          onClick={() => handleToggleAdmin(u)}
+                          className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-colors ${u.is_admin ? "bg-volt/20 text-volt border border-volt/30" : "bg-white/5 text-mutedgray border border-transparent"}`}
+                        >
+                          {u.is_admin ? "ADM" : "USR"}
+                        </button>
                         
-                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto min-w-0">
-                          <button
-                            onClick={() => handleToggleAdmin(u)}
-                            className={`flex-1 sm:flex-none justify-center flex px-2 py-2 sm:py-1 rounded-lg sm:rounded text-[9px] font-black uppercase tracking-wider transition-colors whitespace-nowrap ${u.is_admin ? "bg-volt/20 text-volt border border-volt/30" : "bg-white/5 text-mutedgray hover:bg-white/10"}`}
-                          >
-                            {u.is_admin ? t("admin.roleAdmin") : t("admin.roleUser")}
-                          </button>
-                          
-                          <button
-                            onClick={() => handleToggleVisibility(u)}
-                            className="flex-1 sm:flex-none justify-center flex items-center gap-1.5 px-2 py-2 sm:py-1 rounded-lg sm:rounded bg-white/5 sm:bg-transparent text-[10px] text-mutedgray hover:text-white transition-colors whitespace-nowrap"
-                          >
-                            {u.is_public ? (
-                              <><Globe className="h-3.5 w-3.5 text-volt" /> <span>{t("admin.visibilityPublic")}</span></>
-                            ) : (
-                              <><Lock className="h-3.5 w-3.5 text-hyperpink" /> <span>{t("admin.visibilityPrivate")}</span></>
-                            )}
-                          </button>
-                        </div>
+                        {/* Visibility Badge/Button */}
+                        <button
+                          onClick={() => handleToggleVisibility(u)}
+                          className="p-1 rounded text-mutedgray hover:text-white transition-colors bg-white/5"
+                          title={u.is_public ? t("admin.visibilityPublic") : t("admin.visibilityPrivate")}
+                        >
+                          {u.is_public ? (
+                            <Globe className="h-3.5 w-3.5 text-volt" />
+                          ) : (
+                            <Lock className="h-3.5 w-3.5 text-hyperpink" />
+                          )}
+                        </button>
 
-                        <div className="flex items-center justify-end gap-2 shrink-0 w-full sm:w-auto">
-                          <button
-                            onClick={() => handleStartEdit(u)}
-                            className="p-1.5 bg-white/5 rounded-lg text-mutedgray hover:text-white hover:bg-white/10 transition-colors"
-                            title={t("admin.actionEdit")}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </button>
-                          <button
-                            onClick={() => handleBanUser(u.id)}
-                            className="p-1.5 bg-rose-500/10 rounded-lg text-rose-500 hover:text-white hover:bg-rose-500 transition-colors"
-                            title={t("admin.actionDelete")}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
+                        {/* Edit Button */}
+                        <button
+                          onClick={() => handleStartEdit(u)}
+                          className="p-1 bg-white/5 rounded text-mutedgray hover:text-white transition-colors"
+                          title={t("admin.actionEdit")}
+                        >
+                          <Edit className="h-3.5 w-3.5" />
+                        </button>
+
+                        {/* Ban Button */}
+                        <button
+                          onClick={() => handleBanUser(u.id)}
+                          className="p-1 bg-rose-500/10 rounded text-rose-500 hover:text-white hover:bg-rose-500 transition-colors"
+                          title={t("admin.actionDelete")}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
                     </div>
                   ))}
