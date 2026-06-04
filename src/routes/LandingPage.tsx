@@ -24,135 +24,38 @@ import {
   Sun
 } from "lucide-react";
 
-const FeaturePreview: React.FC<{ variant: "routes" | "progress" | "ranking" | "challenges" | "gallery" | "community" | "spectators" | "profile" }> = ({ variant }) => {
-  if (variant === "routes") {
-    return (
-      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
-        <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Compass className="h-3.5 w-3.5 text-volt" /> Rotas</div>
-        <div className="space-y-2">
-          {["Circuito do parque", "Sprint da avenida", "Subida curta"].map((name, index) => (
-            <div key={name} className="flex items-center gap-3 rounded-xl bg-white/8 p-2">
-              <div className={`h-8 w-10 rounded-lg ${index === 1 ? "bg-hyperpink/25" : "bg-volt/20"}`} />
-              <div>
-                <div className="text-[10px] font-black text-white">{name}</div>
-                <div className="text-[8px] font-bold text-mutedgray">{index === 0 ? "4,8 km" : index === 1 ? "2,1 km" : "1,4 km"}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (variant === "progress") {
-    return (
-      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
-        <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Gauge className="h-3.5 w-3.5 text-hyperpink" /> Progresso</div>
-        <div className="h-20 rounded-xl bg-gradient-to-t from-volt/20 to-transparent border border-white/10 relative">
-          <div className="absolute left-4 bottom-5 h-2 w-2 rounded-full bg-volt" />
-          <div className="absolute left-12 bottom-9 h-2 w-2 rounded-full bg-volt" />
-          <div className="absolute left-20 bottom-14 h-2 w-2 rounded-full bg-volt" />
-          <div className="absolute left-28 bottom-8 h-2 w-2 rounded-full bg-volt" />
-          <div className="absolute left-36 bottom-12 h-2 w-2 rounded-full bg-volt" />
-        </div>
-        <div className="mt-3 text-[11px] font-black text-white">Esta semana</div>
-        <div className="text-[9px] font-bold text-volt">+18% vs. semana anterior</div>
-      </div>
-    );
-  }
-
-  if (variant === "ranking") {
-    return (
-      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
-        <div className="text-[10px] font-black uppercase text-white mb-3 flex items-center gap-2"><Trophy className="h-3.5 w-3.5 text-volt" /> Classificacao</div>
-        {["Adriana", "Voce", "Claudia", "Diogo"].map((name, index) => (
-          <div key={name} className="flex items-center justify-between border-b border-white/8 py-2 text-[10px] font-black text-white">
-            <span>{index + 1}. {name}</span>
-            <span className={index === 0 ? "text-volt" : "text-mutedgray"}>{index === 0 ? "Coroa" : `${42 - index * 6} pts`}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (variant === "challenges") {
-    return (
-      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
-        <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Zap className="h-3.5 w-3.5 text-hyperpink" /> Desafio</div>
-        <div className="rounded-xl border border-hyperpink/30 bg-hyperpink/10 p-3">
-          <div className="text-[9px] font-black text-hyperpink uppercase">Semana 3</div>
-          <div className="mt-2 grid grid-cols-5 gap-1">
-            {[true, true, false, true, false].map((active, index) => (
-              <div key={index} className={`h-7 rounded-md ${active ? "bg-volt" : "bg-white/12"}`} />
-            ))}
-          </div>
-          <div className="mt-3 text-[10px] font-bold text-white">Meta 15 km</div>
-        </div>
-      </div>
-    );
-  }
-
-  if (variant === "gallery") {
-    return (
-      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
-        <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Globe className="h-3.5 w-3.5 text-volt" /> Galeria</div>
-        <div className="grid grid-cols-2 gap-2">
-          {["Sao Paulo", "Rio", "BH", "Curitiba"].map((city) => (
-            <div key={city} className="rounded-xl bg-white/8 p-3">
-              <div className="h-8 rounded-lg bg-volt/15 mb-2" />
-              <div className="text-[9px] font-black text-white">{city}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (variant === "community") {
-    return (
-      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
-        <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Users className="h-3.5 w-3.5 text-hyperpink" /> Comunidade</div>
-        <div className="rounded-xl bg-white/8 p-3">
-          <div className="text-[10px] font-black text-white">@sprintqueen</div>
-          <div className="mt-2 text-[9px] font-semibold text-mutedgray">Treino concluido. Quem vai no proximo?</div>
-          <div className="mt-3 flex gap-3 text-[9px] font-black text-hyperpink"><span>Curtir</span><span>Comentar</span></div>
-        </div>
-      </div>
-    );
-  }
-
-  if (variant === "spectators") {
-    return (
-      <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
-        <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Activity className="h-3.5 w-3.5 text-volt" /> Ao vivo</div>
-        <div className="relative h-24 rounded-xl border border-white/10 bg-white/5">
-          <div className="absolute left-5 top-7 h-3 w-3 rounded-full bg-volt" />
-          <div className="absolute left-20 top-12 h-3 w-3 rounded-full bg-hyperpink" />
-          <div className="absolute right-8 top-6 h-3 w-3 rounded-full bg-white" />
-          <div className="absolute left-4 right-4 top-1/2 border-t border-dashed border-white/25" />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="h-40 rounded-2xl bg-[#151515] p-5 overflow-hidden">
-      <div className="text-[10px] font-black uppercase text-white mb-4 flex items-center gap-2"><Crown className="h-3.5 w-3.5 text-hyperpink" /> Perfil</div>
-      <div className="flex items-center gap-3">
-        <div className="h-12 w-12 rounded-2xl bg-volt/20" />
-        <div>
-          <div className="text-[11px] font-black text-white">BoltVolt</div>
-          <div className="text-[9px] font-bold text-mutedgray">3 vitorias • 8 rotas</div>
-        </div>
-      </div>
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <div className="h-10 rounded-lg bg-hyperpink/20" />
-        <div className="h-10 rounded-lg bg-white/10" />
-        <div className="h-10 rounded-lg bg-volt/20" />
-      </div>
-    </div>
-  );
-};
+const featureTags = {
+  pt: {
+    routes: ["largada exata", "chegada exata", "modelos salvos"],
+    progress: ["distancia", "dias ativos", "vitorias"],
+    ranking: ["hall da fama", "modalidade", "cidade e pais"],
+    challenges: ["meta real", "ranking da rede", "historico"],
+    gallery: ["cidade", "modalidade", "reutilizar rota"],
+    community: ["posts", "comentarios", "curtidas e @"],
+    spectators: ["link publico", "assistir ao vivo", "controle do criador"],
+    profile: ["bio", "fotos", "volts 24h"],
+  },
+  en: {
+    routes: ["exact start", "exact finish", "saved templates"],
+    progress: ["distance", "active days", "wins"],
+    ranking: ["hall of fame", "modality", "city and country"],
+    challenges: ["real goal", "network ranking", "history"],
+    gallery: ["city", "modality", "reuse route"],
+    community: ["posts", "comments", "likes and @"],
+    spectators: ["public link", "watch live", "creator control"],
+    profile: ["bio", "photos", "24h volts"],
+  },
+  es: {
+    routes: ["salida exacta", "llegada exacta", "modelos guardados"],
+    progress: ["distancia", "dias activos", "victorias"],
+    ranking: ["salon de la fama", "modalidad", "ciudad y pais"],
+    challenges: ["meta real", "ranking de red", "historial"],
+    gallery: ["ciudad", "modalidad", "reutilizar ruta"],
+    community: ["posts", "comentarios", "likes y @"],
+    spectators: ["enlace publico", "ver en vivo", "control del creador"],
+    profile: ["bio", "fotos", "volts 24h"],
+  },
+} as const;
 
 // Local translations to avoid bloating the central i18n.ts file
 const translations = {
@@ -441,6 +344,7 @@ export const LandingPage: React.FC = () => {
 
   // Get active translation based on active locale
   const t = translations[locale as "pt" | "en" | "es"] || translations.pt;
+  const featureTagCopy = featureTags[locale as "pt" | "en" | "es"] || featureTags.pt;
 
   // Simulator Telemetry States
   const [speed, setSpeed] = useState(0);
@@ -893,19 +797,29 @@ export const LandingPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
           {[
-            { title: t.feat1Title, desc: t.feat1Desc, glow: "volt" as const, preview: "routes" as const },
-            { title: t.feat2Title, desc: t.feat2Desc, glow: "pink" as const, preview: "progress" as const },
-            { title: t.feat3Title, desc: t.feat3Desc, glow: "volt" as const, preview: "ranking" as const },
-            { title: t.feat4Title, desc: t.feat4Desc, glow: "pink" as const, preview: "challenges" as const },
-            { title: t.complete1Title, desc: t.complete1Desc, glow: "volt" as const, preview: "gallery" as const },
-            { title: t.complete2Title, desc: t.complete2Desc, glow: "pink" as const, preview: "community" as const },
-            { title: t.complete3Title, desc: t.complete3Desc, glow: "volt" as const, preview: "spectators" as const },
-            { title: t.complete4Title, desc: t.complete4Desc, glow: "pink" as const, preview: "profile" as const },
+            { title: t.feat1Title, desc: t.feat1Desc, glow: "volt" as const, icon: Compass, accent: "text-volt", chip: "bg-volt/10 border-volt/20 text-volt", tags: featureTagCopy.routes },
+            { title: t.feat2Title, desc: t.feat2Desc, glow: "pink" as const, icon: Gauge, accent: "text-hyperpink", chip: "bg-hyperpink/10 border-hyperpink/20 text-hyperpink", tags: featureTagCopy.progress },
+            { title: t.feat3Title, desc: t.feat3Desc, glow: "volt" as const, icon: Trophy, accent: "text-volt", chip: "bg-volt/10 border-volt/20 text-volt", tags: featureTagCopy.ranking },
+            { title: t.feat4Title, desc: t.feat4Desc, glow: "pink" as const, icon: Zap, accent: "text-hyperpink", chip: "bg-hyperpink/10 border-hyperpink/20 text-hyperpink", tags: featureTagCopy.challenges },
+            { title: t.complete1Title, desc: t.complete1Desc, glow: "volt" as const, icon: Globe, accent: "text-volt", chip: "bg-volt/10 border-volt/20 text-volt", tags: featureTagCopy.gallery },
+            { title: t.complete2Title, desc: t.complete2Desc, glow: "pink" as const, icon: Users, accent: "text-hyperpink", chip: "bg-hyperpink/10 border-hyperpink/20 text-hyperpink", tags: featureTagCopy.community },
+            { title: t.complete3Title, desc: t.complete3Desc, glow: "volt" as const, icon: Activity, accent: "text-volt", chip: "bg-volt/10 border-volt/20 text-volt", tags: featureTagCopy.spectators },
+            { title: t.complete4Title, desc: t.complete4Desc, glow: "pink" as const, icon: Crown, accent: "text-hyperpink", chip: "bg-hyperpink/10 border-hyperpink/20 text-hyperpink", tags: featureTagCopy.profile },
           ].map((item) => {
+            const Icon = item.icon;
             return (
               <Card key={item.title} glow={item.glow} className="p-5 border border-white/10 hover:bg-white/5 transition-colors group">
-                <FeaturePreview variant={item.preview} />
-                <h3 className="mt-5 text-base font-black uppercase tracking-wider text-white mb-2">{item.title}</h3>
+                <div className={`mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border ${item.chip}`}>
+                  <Icon className={`h-6 w-6 ${item.accent}`} />
+                </div>
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {item.tags.map((tag) => (
+                    <span key={tag} className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-mutedgray">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <h3 className="text-base font-black uppercase tracking-wider text-white mb-2">{item.title}</h3>
                 <p className="text-xs font-semibold text-mutedgray leading-relaxed uppercase">{item.desc}</p>
               </Card>
             );
