@@ -1,10 +1,17 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.tsx'
 
-registerSW({ immediate: true })
+if ('requestIdleCallback' in window) {
+  window.requestIdleCallback(() => {
+    import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true }))
+  })
+} else {
+  globalThis.setTimeout(() => {
+    import('virtual:pwa-register').then(({ registerSW }) => registerSW({ immediate: true }))
+  }, 1500)
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

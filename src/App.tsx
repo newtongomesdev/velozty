@@ -2,7 +2,6 @@ import React, { Suspense, lazy, useCallback, useMemo, useState, useEffect, creat
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ToastProvider } from "./components/ui/Toast";
 import { I18nProvider } from "./components/i18n/I18nProvider";
-import { AuthProvider, useAuth } from "./components/auth/AuthGuard";
 
 // Route View screens loaded on demand
 const LandingPage = lazy(() => import("./routes/LandingPage"));
@@ -31,19 +30,7 @@ const RouteFallback = () => (
   </div>
 );
 
-const RootRoute: React.FC = () => {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return <RouteFallback />;
-  }
-
-  if (user) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <LandingPage />;
-};
+const RootRoute: React.FC = () => <LandingPage />;
 
 export const App: React.FC = () => {
   const themeStorageKey = "velocity_theme";
@@ -75,9 +62,8 @@ export const App: React.FC = () => {
       <I18nProvider>
         <BrowserRouter>
           <ToastProvider>
-            <AuthProvider>
-              <div className="relative min-h-screen">
-                <Suspense fallback={<RouteFallback />}>
+            <div className="relative min-h-screen">
+              <Suspense fallback={<RouteFallback />}>
                 <Routes>
                 
                 {/* PUBLIC LANDING PAGE */}
@@ -93,9 +79,8 @@ export const App: React.FC = () => {
                 <Route path="*" element={<Navigate to="/" replace />} />
                 
                 </Routes>
-                </Suspense>
-              </div>
-            </AuthProvider>
+              </Suspense>
+            </div>
           </ToastProvider>
         </BrowserRouter>
       </I18nProvider>

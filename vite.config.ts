@@ -5,6 +5,32 @@ import { VitePWA } from 'vite-plugin-pwa'
 // https://vite.dev/config/
 export default defineConfig({
   envPrefix: ['VITE_', 'NEXT_PUBLIC_'],
+  build: {
+    rolldownOptions: {
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: 'react-vendor',
+              test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom)[\\/]/,
+            },
+            {
+              name: 'supabase-vendor',
+              test: /[\\/]node_modules[\\/](@supabase|@realtime|@postgrest|@gotrue|@storage-js)[\\/]/,
+            },
+            {
+              name: 'map-vendor',
+              test: /[\\/]node_modules[\\/](leaflet|react-leaflet|@react-leaflet)[\\/]/,
+            },
+            {
+              name: 'ui-vendor',
+              test: /[\\/]node_modules[\\/](lucide-react|dayjs|zod)[\\/]/,
+            },
+          ],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
